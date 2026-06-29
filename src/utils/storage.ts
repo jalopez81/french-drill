@@ -155,6 +155,13 @@ export function rateVocabCard(
   };
 }
 
+export function deleteVocabEntry(state: AppState, id: string): AppState {
+  return {
+    ...state,
+    vocabulary: state.vocabulary.filter((entry) => entry.id !== id),
+  };
+}
+
 export function deleteSavedText(state: AppState, id: string): AppState {
   return {
     ...state,

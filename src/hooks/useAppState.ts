@@ -3,6 +3,7 @@ import type { StudyLanguage } from '../config/languages';
 import type { AppState, FlashcardRating } from '../types';
 import {
   deleteSavedText,
+  deleteVocabEntry,
   importState,
   loadState,
   rateVocabCard,
@@ -50,6 +51,10 @@ export function useAppState(studyLanguage: StudyLanguage) {
     setState((prev) => rateVocabCard(prev, vocabId, rating));
   }, []);
 
+  const removeVocabEntry = useCallback((id: string) => {
+    setState((prev) => deleteVocabEntry(prev, id));
+  }, []);
+
   const restoreFromBackup = useCallback((json: string) => {
     const restored = importState(json);
     setState(restored);
@@ -61,6 +66,7 @@ export function useAppState(studyLanguage: StudyLanguage) {
     prepareLanguageSwitch,
     saveCurrentText,
     removeSavedText,
+    removeVocabEntry,
     markTextPracticed,
     rateCard,
     restoreFromBackup,

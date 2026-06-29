@@ -12,8 +12,8 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: 'texts', label: 'Lecciones', icon: '📖' },
   { id: 'practice', label: 'Práctica', icon: '⚡' },
   { id: 'flashcards', label: 'Memoria', icon: '🧠' },
-  { id: 'vocabulary', label: 'Vocab.', icon: '📝' },
-    { id: 'settings', label: 'Ajustes', icon: '🛠' }
+  { id: 'vocabulary', label: 'Vocabulario', icon: '📝' },
+  { id: 'settings', label: 'Ajustes', icon: '🛠' },
 ];
 
 export function BottomNav({

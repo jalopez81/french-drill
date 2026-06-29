@@ -13,6 +13,7 @@ interface TextInputProps {
   canTranslate: boolean;
   translating: boolean;
   translated: boolean;
+  saving?: boolean;
 }
 
 export function TextInput({
@@ -30,6 +31,7 @@ export function TextInput({
   canTranslate,
   translating,
   translated,
+  saving = false,
 }: TextInputProps) {
   return (
     <section className="card">
@@ -39,7 +41,7 @@ export function TextInput({
             type="button"
             className="btn btn--secondary btn--sm"
             onClick={onTranslate}
-            disabled={!canTranslate || translating}
+            disabled={!canTranslate || translating || saving}
           >
             {translating ? 'Traduciendo…' : translated ? 'Traducido ✓' : 'Traducir'}
           </button>
@@ -52,13 +54,16 @@ export function TextInput({
               type="button"
               className="btn btn--primary btn--sm"
               onClick={onSave}
-              disabled={!canSave}
+              disabled={!canSave || saving}
             >
-              Guardar
+              {saving ? 'Guardando…' : 'Guardar'}
             </button>
           )}
         </div>
       </div>
+      {isLoadedLesson && (
+        <div className="banner banner--info">Práctica de lección guardada</div>
+      )}
       <label className="field field--compact">
         <input
           type="text"

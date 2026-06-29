@@ -66,7 +66,15 @@ function SavedTextCard({
         <button
           type="button"
           className="btn btn--sm saved-text-card__delete"
-          onClick={() => onDelete(text.id)}
+          onClick={() => {
+            if (
+              window.confirm(
+                `¿Borrar la lección «${text.title}»?\n\nLas palabras del vocabulario no se borran.`,
+              )
+            ) {
+              onDelete(text.id);
+            }
+          }}
           aria-label={`Eliminar ${text.title}`}
         >
           Borrar

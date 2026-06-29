@@ -82,7 +82,8 @@ export function WordPanelContainer({
   useEffect(() => {
     if (!word) return;
     fetchTranslation(word);
-  }, [word, fetchTranslation]);
+    void onSpeak(word);
+  }, [word, fetchTranslation, onSpeak]);
 
   return (
     <WordPanel

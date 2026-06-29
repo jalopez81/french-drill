@@ -37,7 +37,7 @@ export function useFlashcards(vocabulary: VocabEntry[]) {
     setQueue(sortByReviewPriority(cards));
     setRevealed(false);
     setSessionDone(0);
-  }, [deckKey, studyDeck]);
+  }, [deckKey]);
 
   const rateCard = useCallback(
     (rating: FlashcardRating, onRate: (id: string, rating: FlashcardRating) => void) => {

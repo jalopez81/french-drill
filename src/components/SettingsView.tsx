@@ -55,6 +55,14 @@ export function SettingsView({
   };
 
   const handleImportFile = (file: File) => {
+    if (
+      !window.confirm(
+        '¿Importar este backup?\n\nSe reemplazarán todas las lecciones y el vocabulario del idioma actual.',
+      )
+    ) {
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       try {

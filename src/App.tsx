@@ -15,7 +15,6 @@ import { VocabularyList } from './components/VocabularyList';
 import { FlashcardsView } from './components/FlashcardsView';
 import { SavedTextsView } from './components/SavedTextsView';
 import { SettingsView } from './components/SettingsView';
-import { EyeButton } from './components/EyeButton';
 import { LanguageFlag } from './components/LanguageFlag';
 import { countDue } from './utils/spacedRepetition';
 import { migrateLegacyState, clearLastLessonId, loadLastLessonId, saveLastLessonId } from './utils/storage';
@@ -30,6 +29,7 @@ export default function App() {
     prepareLanguageSwitch,
     saveCurrentText,
     removeSavedText,
+    removeVocabEntry,
     markTextPracticed,
     rateCard,
     restoreFromBackup,
@@ -55,7 +55,6 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('practice');
   const [loadRequest, setLoadRequest] = useState<{ text: SavedText; key: number } | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
-  const [showVocabTranslations, setShowVocabTranslations] = useState(false);
 
   useEffect(() => {
     migrateLegacyState();
@@ -142,17 +141,6 @@ export default function App() {
             <p className="app-header__subtitle">{langConfig.subtitle}</p>
           </div>
         </div>
-        {tab === 'vocabulary' && (
-          <div className="app-header__actions">
-            <EyeButton
-              active={showVocabTranslations}
-              onClick={() => setShowVocabTranslations((visible) => !visible)}
-              label={
-                showVocabTranslations ? 'Ocultar traducciones' : 'Mostrar traducciones'
-              }
-            />
-          </div>
-        )}
       </header>
 
       {saveNotice && <div className="toast">{saveNotice}</div>}
@@ -189,12 +177,12 @@ export default function App() {
           />
         )}
         {tab === 'vocabulary' && (
-          <section>
+          <section className="vocab-view">
             <h2 className="section-title">Vocabulario ({state.vocabulary.length})</h2>
             <VocabularyList
               entries={state.vocabulary}
-              showTranslations={showVocabTranslations}
               onSpeak={speak}
+              onDelete={removeVocabEntry}
               speaking={speaking}
             />
           </section>

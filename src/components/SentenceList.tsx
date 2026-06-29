@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { SentenceCard } from './SentenceCard';
+import { SentenceCard, type DrillWordHighlight } from './SentenceCard';
 
 interface SentenceListProps {
   sentences: string[];
   selectedIndex: number | null;
   speakingIndex: number | null;
   selectedWord: string | null;
+  drillHighlight: DrillWordHighlight | null;
   getTranslation: (text: string) => string | null;
   isTranslationLoading: (text: string) => boolean;
   hasTranslationError: (text: string) => boolean;
   fetchTranslation: (text: string) => void;
+  onSpeakSentence: (index: number) => void;
   onSelectSentence: (index: number) => void;
   onSelectWord: (word: string) => void;
 }
@@ -19,10 +21,12 @@ export function SentenceList({
   selectedIndex,
   speakingIndex,
   selectedWord,
+  drillHighlight,
   getTranslation,
   isTranslationLoading,
   hasTranslationError,
   fetchTranslation,
+  onSpeakSentence,
   onSelectSentence,
   onSelectWord,
 }: SentenceListProps) {
@@ -66,11 +70,13 @@ export function SentenceList({
             isSelected={selectedIndex === index}
             isSpeaking={speakingIndex === index}
             selectedWord={selectedWord}
+            drillHighlight={drillHighlight}
             showTranslation={showTranslation}
             translation={getTranslation(sentence)}
             translationLoading={showTranslation && isTranslationLoading(sentence)}
             translationError={showTranslation && hasTranslationError(sentence)}
             onToggleTranslation={() => toggleTranslation(index, sentence)}
+            onSpeakSentence={() => onSpeakSentence(index)}
             onSelectSentence={() => onSelectSentence(index)}
             onSelectWord={onSelectWord}
           />
