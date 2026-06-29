@@ -1,0 +1,38 @@
+export interface SavedText {
+  id: string;
+  title: string;
+  content: string;
+  sentences: string[];
+  createdAt: number;
+  lastPracticedAt?: number;
+}
+
+export interface VocabEntry {
+  id: string;
+  word: string;
+  normalized: string;
+  translation?: string;
+  addedAt: number;
+  sourceTextId?: string;
+  srs?: VocabSrs;
+}
+
+export interface VocabSrs {
+  ease: number;
+  intervalDays: number;
+  repetitions: number;
+  nextReview: number;
+  lastReview?: number;
+}
+
+export interface AppState {
+  version: number;
+  savedTexts: SavedText[];
+  vocabulary: VocabEntry[];
+}
+
+export type Tab = 'practice' | 'texts' | 'vocabulary' | 'flashcards' | 'settings';
+
+export type FlashcardRating = 'again' | 'hard' | 'good' | 'easy';
+
+export const APP_STATE_VERSION = 2;
