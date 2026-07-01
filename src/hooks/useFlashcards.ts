@@ -12,10 +12,7 @@ export function useFlashcards(vocabulary: VocabEntry[]) {
     [vocabulary],
   );
 
-  const deckKey = useMemo(
-    () => studyDeck.map((entry) => `${entry.id}:${entry.translation ?? ''}`).join('|'),
-    [studyDeck],
-  );
+  const deckKey = useMemo(() => studyDeck.map((entry) => entry.id).join('|'), [studyDeck]);
 
   const dueCount = useMemo(() => countDue(studyDeck), [studyDeck]);
   const totalCount = studyDeck.length;
@@ -37,7 +34,7 @@ export function useFlashcards(vocabulary: VocabEntry[]) {
     setQueue(sortByReviewPriority(cards));
     setRevealed(false);
     setSessionDone(0);
-  }, [deckKey]);
+  }, [deckKey, studyDeck]);
 
   const rateCard = useCallback(
     (rating: FlashcardRating, onRate: (id: string, rating: FlashcardRating) => void) => {

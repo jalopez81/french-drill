@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FlashcardRating, VocabEntry } from '../types';
 import { formatNextReview } from '../utils/spacedRepetition';
 import { FlashcardSummary } from './FlashcardSummary';
@@ -18,6 +18,8 @@ interface FlashcardsViewProps {
   onReveal: () => void;
   onRate: (rating: FlashcardRating) => void;
   onSpeak: (word: string) => void;
+  onSaveTranslation: (word: string, translation: string) => void;
+  onRefetchTranslation: (word: string) => Promise<string | null>;
   onRestart: () => void;
   onStudyAll: () => void;
 }
@@ -44,17 +46,36 @@ export function FlashcardsView({
   onReveal,
   onRate,
   onSpeak,
+  onSaveTranslation,
+  onRefetchTranslation,
   onRestart,
   onStudyAll,
 }: FlashcardsViewProps) {
   const withoutTranslation = vocabulary.length - totalCount;
   const onSpeakRef = useRef(onSpeak);
+  const [draftTranslation, setDraftTranslation] = useState('');
+  const [refetching, setRefetching] = useState(false);
+
   onSpeakRef.current = onSpeak;
+
+  const liveCard = useMemo(() => {
+    if (!currentCard) return null;
+    return vocabulary.find((entry) => entry.id === currentCard.id) ?? currentCard;
+  }, [currentCard, vocabulary]);
 
   useEffect(() => {
     if (!currentCard) return;
     void onSpeakRef.current(currentCard.word);
   }, [currentCard?.id]);
+
+  useEffect(() => {
+    setDraftTranslation(liveCard?.translation ?? '');
+  }, [liveCard?.id, liveCard?.translation]);
+
+  const canSave =
+    Boolean(liveCard) &&
+    draftTranslation.trim().length > 0 &&
+    draftTranslation.trim() !== (liveCard?.translation ?? '').trim();
 
   if (!hasDeck) {
     return (
@@ -99,7 +120,7 @@ export function FlashcardsView({
     );
   }
 
-  if (!currentCard) {
+  if (!currentCard || !liveCard) {
     return (
       <div className="flashcards-view">
         {header}
@@ -150,26 +171,66 @@ export function FlashcardsView({
             className="btn btn--primary btn--icon"
             onClick={(e) => {
               e.stopPropagation();
-              onSpeak(currentCard.word);
+              onSpeak(liveCard.word);
             }}
             disabled={speaking}
-            aria-label={`Pronunciar ${currentCard.word}`}
+            aria-label={`Pronunciar ${liveCard.word}`}
           >
             ▶
           </button>
         </div>
 
-        <p className="flashcard__word">{currentCard.word}</p>
+        <p className="flashcard__word">{liveCard.word}</p>
 
         {revealed ? (
-          <p className="flashcard__answer">{currentCard.translation}</p>
+          <div
+            className="flashcard__answer-edit"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <label className="field field--compact">
+              <span className="field__label">Traducción</span>
+              <input
+                type="text"
+                className="title-input"
+                value={draftTranslation}
+                onChange={(e) => setDraftTranslation(e.target.value)}
+                disabled={refetching}
+              />
+            </label>
+            <div className="btn-row flashcard__translation-actions">
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                disabled={!canSave}
+                onClick={() => onSaveTranslation(liveCard.word, draftTranslation)}
+              >
+                Guardar
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                disabled={refetching}
+                onClick={() => {
+                  setRefetching(true);
+                  void onRefetchTranslation(liveCard.word)
+                    .then((translation) => {
+                      if (translation) setDraftTranslation(translation);
+                    })
+                    .finally(() => setRefetching(false));
+                }}
+              >
+                {refetching ? 'Traduciendo…' : 'Traducir de nuevo'}
+              </button>
+            </div>
+          </div>
         ) : (
           <p className="flashcard__hint">Toca para ver la respuesta</p>
         )}
 
-        {currentCard.srs && (
+        {liveCard.srs && (
           <p className="flashcard__srs">
-            Próxima revisión: {formatNextReview(currentCard.srs.nextReview)}
+            Próxima revisión: {formatNextReview(liveCard.srs.nextReview)}
           </p>
         )}
       </article>

@@ -18,7 +18,7 @@ import { SettingsView } from './components/SettingsView';
 import { LanguageFlag } from './components/LanguageFlag';
 import { countDue } from './utils/spacedRepetition';
 import { migrateLegacyState, clearLastLessonId, loadLastLessonId, saveLastLessonId } from './utils/storage';
-import { migrateLegacyTranslationCache, initTranslationProvider, setTranslationProvider } from './utils/translate';
+import { migrateLegacyTranslationCache, initTranslationProvider, setTranslationProvider, setManualTranslation, removeCachedTranslation, translateToSpanish } from './utils/translate';
 import type { TranslationProvider } from './utils/translate';
 
 export default function App() {
@@ -140,6 +140,28 @@ export default function App() {
 
   const speakWord = useCallback((word: string) => speak(word, { word }), [speak]);
 
+  const handleSaveWordTranslation = useCallback(
+    (word: string, translation: string) => {
+      setManualTranslation(word, translation);
+      updateVocabTranslationForWord(word, translation);
+    },
+    [updateVocabTranslationForWord],
+  );
+
+  const handleRefetchWordTranslation = useCallback(
+    async (word: string) => {
+      removeCachedTranslation(word);
+      try {
+        const translated = await translateToSpanish(word, { force: true });
+        updateVocabTranslationForWord(word, translated);
+        return translated;
+      } catch {
+        return null;
+      }
+    },
+    [updateVocabTranslationForWord],
+  );
+
   return (
     <div className="app">
       <header className="app-header">
@@ -174,7 +196,7 @@ export default function App() {
               setSaveNotice(message);
               window.setTimeout(() => setSaveNotice(null), 2500);
             }}
-            onUpdateVocabTranslation={updateVocabTranslationForWord}
+            onUpdateVocabTranslation={handleSaveWordTranslation}
             prefetchSpeech={prefetchSpeech}
             speechSpeed={speechSpeed}
             onSpeechSpeedChange={setSpeechSpeed}
@@ -198,6 +220,8 @@ export default function App() {
             <VocabularyList
               entries={state.vocabulary}
               onSpeak={speakWord}
+              onSaveTranslation={handleSaveWordTranslation}
+              onRefetchTranslation={handleRefetchWordTranslation}
               onDelete={removeVocabEntry}
               speaking={speaking}
             />
@@ -220,6 +244,8 @@ export default function App() {
             onReveal={() => flashcards.setRevealed(true)}
             onRate={(rating) => flashcards.rateCard(rating, rateCard)}
             onSpeak={speakWord}
+            onSaveTranslation={handleSaveWordTranslation}
+            onRefetchTranslation={handleRefetchWordTranslation}
             onRestart={() => flashcards.rebuildQueue('due')}
             onStudyAll={() => flashcards.rebuildQueue('all')}
           />
