@@ -68,6 +68,7 @@ function AppContent() {
     setSpeechSpeed,
     canUseNativeSpeech: nativeSpeech,
     systemVoiceCount,
+    usesOnlineAudio,
     prefetchSpeech,
   } = useSpeech(studyLanguage);
 
@@ -209,11 +210,13 @@ function AppContent() {
       if (translated) {
         updateVocabTranslationForWord(word, translated);
       }
-      await removeCachedAudio(word);
-      await prefetchSpeech([word]);
+      if (usesOnlineAudio()) {
+        await removeCachedAudio(word);
+        await prefetchSpeech([word]);
+      }
       return translated;
     },
-    [prefetchSpeech, updateVocabTranslationForWord],
+    [prefetchSpeech, updateVocabTranslationForWord, usesOnlineAudio],
   );
 
   const handleRegenerateAllVocab = useCallback(async () => {
@@ -236,6 +239,7 @@ function AppContent() {
         prefetchSpeech,
         {
           skipManual: true,
+          prefetchAudio: usesOnlineAudio(),
           onProgress: setRegenerateProgress,
         },
       );
@@ -244,10 +248,10 @@ function AppContent() {
         bulkUpdateVocabTranslations(result.translations);
       }
 
-      const parts = [
-        `${result.translated} traducciones`,
-        `${result.audioCount} audios`,
-      ];
+      const parts = [`${result.translated} traducciones`];
+      if (usesOnlineAudio()) {
+        parts.push(`${result.audioCount} audios`);
+      }
       if (result.skippedManual > 0) parts.push(`${result.skippedManual} manuales intactas`);
       if (result.failed > 0) parts.push(`${result.failed} fallidas`);
 
@@ -263,6 +267,7 @@ function AppContent() {
     prefetchSpeech,
     regeneratingVocab,
     state.vocabulary,
+    usesOnlineAudio,
   ]);
 
   const handleFlashcardRate = useCallback(
@@ -431,7 +436,7 @@ function AppContent() {
             onClearVoice={clearVoice}
             onReloadVoices={reloadVoices}
             onTestVoice={() => speak(langConfig.voiceTestPhrase)}
-            speechMode={speechMode}
+            usesOnlineAudio={usesOnlineAudio()}
             canUseNativeSpeech={nativeSpeech}
             systemVoiceCount={systemVoiceCount}
             translationProvider={translationProvider}

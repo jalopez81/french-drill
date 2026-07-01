@@ -126,13 +126,13 @@ export function PracticeView({
 
   const handleTranslateAll = async () => {
     const items = speechItems(text);
-    const [result, audioCount] = await Promise.all([
-      translateAllText(text),
-      prefetchSpeech(items),
-    ]);
+    const result = await translateAllText(text);
+    const audioCount = await prefetchSpeech(items);
 
     if (result.ok) {
-      onNotice?.(`Traducciones y pronunciación listas (${result.count} ítems, ${audioCount} audios)`);
+      const audioNote =
+        audioCount > 0 ? `${audioCount} audios en caché` : 'pronunciación con voz del dispositivo';
+      onNotice?.(`Traducciones listas (${result.count} ítems, ${audioNote})`);
       return;
     }
 
@@ -145,13 +145,13 @@ export function PracticeView({
     setSaving(true);
     try {
       const items = speechItems(text);
-      const [, audioCount] = await Promise.all([
-        translateAllText(text),
-        prefetchSpeech(items),
-      ]);
+      await translateAllText(text);
+      const audioCount = await prefetchSpeech(items);
       onSave(text, title.trim() || undefined);
       setTitle('');
-      onNotice?.(`Guardado con ${audioCount} audios en caché`);
+      const audioNote =
+        audioCount > 0 ? `${audioCount} audios en caché` : 'voz del dispositivo';
+      onNotice?.(`Guardado (${audioNote})`);
     } finally {
       setSaving(false);
     }
@@ -397,14 +397,6 @@ export function PracticeView({
     <div className={`practice-view${focusMode ? ' practice-view--focus' : ''}`}>
       {!focusMode && (
         <div className="practice-view__setup">
-          {showPracticeProgress && (
-            <ProgressBar
-              indeterminate
-              label={practiceProgressLabel}
-              size="sm"
-              className="practice-progress"
-            />
-          )}
           <TextInput
             placeholder={langConfig.textPlaceholder}
             title={title}

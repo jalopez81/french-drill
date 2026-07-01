@@ -343,9 +343,19 @@ export function useSpeech(studyLanguage: StudyLanguage) {
     setSpeaking(false);
   }, []);
 
-  const prefetchSpeech = useCallback(async (texts: string[]) => {
-    return prefetchStudyAudio(texts);
-  }, []);
+  const usesOnlineAudio = useCallback((): boolean => {
+    if (!canUseNativeSpeech()) return true;
+    if (speechMode === 'online') return true;
+    return listStudyVoices(studyLanguage).length === 0;
+  }, [speechMode, studyLanguage]);
+
+  const prefetchSpeech = useCallback(
+    async (texts: string[]) => {
+      if (!usesOnlineAudio()) return 0;
+      return prefetchStudyAudio(texts);
+    },
+    [usesOnlineAudio],
+  );
 
   return {
     speak,
@@ -366,6 +376,7 @@ export function useSpeech(studyLanguage: StudyLanguage) {
     speechSpeed,
     setSpeechSpeed,
     canUseNativeSpeech: canUseNativeSpeech(),
+    usesOnlineAudio,
     prefetchSpeech,
   };
 }

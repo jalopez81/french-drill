@@ -1,6 +1,8 @@
 import type { StudyLanguage } from '../config/languages';
 import { LINGVA_INSTANCES } from './lingva';
 import { LANGUAGES, TARGET_LANG } from '../config/languages';
+import { lingvaFetch } from './lingvaClient';
+import { sleep } from './requestQueue';
 
 export type TranslationProvider = 'lingva' | 'google';
 
@@ -11,7 +13,9 @@ const PROVIDER_STORAGE_KEY = 'french-drill-translation-provider';
 const memoryCaches: Record<StudyLanguage, TranslationCache> = { fr: {}, en: {} };
 const manualCaches: Record<StudyLanguage, TranslationCache> = { fr: {}, en: {} };
 let activeLang: StudyLanguage = 'fr';
-let activeProvider: TranslationProvider = 'lingva';
+let activeProvider: TranslationProvider = 'google';
+
+const inflightTranslations = new Map<string, Promise<string>>();
 
 function cacheStorageKey(lang: StudyLanguage): string {
   return `french-drill-translations-${lang}`;
@@ -24,9 +28,10 @@ function manualStorageKey(lang: StudyLanguage): string {
 export function loadTranslationProvider(): TranslationProvider {
   try {
     const saved = localStorage.getItem(PROVIDER_STORAGE_KEY);
-    return saved === 'google' ? 'google' : 'lingva';
+    if (saved === 'lingva') return 'lingva';
+    return 'google';
   } catch {
-    return 'lingva';
+    return 'google';
   }
 }
 
@@ -146,11 +151,7 @@ async function fetchLingvaTranslation(text: string, sourceLang: StudyLanguage): 
   for (const instance of LINGVA_INSTANCES) {
     try {
       const url = `${instance}/api/v1/${sourceCode}/${TARGET_LANG}/${encodeURIComponent(text)}`;
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      const response = await lingvaFetch(url);
 
       const data = (await response.json()) as {
         translation?: string;
@@ -216,19 +217,79 @@ export async function translateToSpanish(text: string, options?: { force?: boole
   if (!options?.force) {
     const cached = getCachedTranslation(key);
     if (cached) return cached;
+
+    const pending = inflightTranslations.get(key);
+    if (pending) return pending;
   }
 
-  const translated = await fetchTranslation(key, activeLang);
-  cacheTranslation(key, translated);
-  return translated;
+  const promise = (async () => {
+    const translated = await fetchTranslation(key, activeLang);
+    cacheTranslation(key, translated);
+    return translated;
+  })();
+
+  if (!options?.force) {
+    inflightTranslations.set(key, promise);
+    promise.finally(() => inflightTranslations.delete(key));
+  }
+
+  return promise;
 }
 
 async function translateIndividually(items: string[]): Promise<Record<string, string>> {
   const result: Record<string, string> = {};
 
   for (const item of items) {
-    const translation = await translateToSpanish(item);
-    result[item] = translation;
+    try {
+      result[item] = await translateToSpanish(item);
+    } catch {
+      // omit failed item; caller may retry later
+    }
+  }
+
+  return result;
+}
+
+const BULK_CHUNK_SIZE = 12;
+
+async function translateInChunks(items: string[]): Promise<Record<string, string>> {
+  const result: Record<string, string> = {};
+
+  for (let i = 0; i < items.length; i += BULK_CHUNK_SIZE) {
+    const chunk = items.slice(i, i + BULK_CHUNK_SIZE);
+
+    if (chunk.length === 1) {
+      try {
+        result[chunk[0]] = await translateToSpanish(chunk[0]);
+      } catch {
+        // skip
+      }
+      continue;
+    }
+
+    try {
+      const payload = chunk.join('\n');
+      const translatedPayload = await fetchLingvaTranslation(payload, activeLang);
+      const parts = translatedPayload.split('\n');
+
+      if (parts.length === chunk.length) {
+        chunk.forEach((key, index) => {
+          const translation = parts[index].trim();
+          cacheTranslation(key, translation);
+          result[key] = translation;
+        });
+        continue;
+      }
+    } catch {
+      // fallback below
+    }
+
+    const fallback = await translateIndividually(chunk);
+    Object.assign(result, fallback);
+
+    if (i + BULK_CHUNK_SIZE < items.length) {
+      await sleep(1000);
+    }
   }
 
   return result;
@@ -254,18 +315,8 @@ export async function translateBulk(items: string[]): Promise<Record<string, str
 
   if (activeProvider === 'lingva') {
     try {
-      const payload = missing.join('\n');
-      const translatedPayload = await fetchLingvaTranslation(payload, activeLang);
-      const parts = translatedPayload.split('\n');
-
-      if (parts.length === missing.length) {
-        missing.forEach((key, index) => {
-          const translation = parts[index].trim();
-          cacheTranslation(key, translation);
-          result[key] = translation;
-        });
-        return result;
-      }
+      const chunked = await translateInChunks(missing);
+      return { ...result, ...chunked };
     } catch {
       // fallback below
     }

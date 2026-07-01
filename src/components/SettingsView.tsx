@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import type { SpeechMode } from '../hooks/useSpeech';
 import type { StudyLanguage } from '../config/languages';
 import { LANGUAGES } from '../config/languages';
 import type { AppState } from '../types';
@@ -26,7 +25,7 @@ interface SettingsViewProps {
   onClearVoice: () => void;
   onReloadVoices: () => void;
   onTestVoice: () => void;
-  speechMode: SpeechMode;
+  usesOnlineAudio: boolean;
   canUseNativeSpeech: boolean;
   systemVoiceCount: number;
   translationProvider: TranslationProvider;
@@ -49,7 +48,7 @@ export function SettingsView({
   onClearVoice,
   onReloadVoices,
   onTestVoice,
-  speechMode,
+  usesOnlineAudio,
   canUseNativeSpeech,
   systemVoiceCount,
   translationProvider,
@@ -94,6 +93,12 @@ export function SettingsView({
   };
 
   const dateStamp = new Date().toISOString().slice(0, 10);
+  const speechSourceLabel = usesOnlineAudio ? 'Lingva (en línea)' : 'Voz nativa del dispositivo';
+  const speechSourceDetail = usesOnlineAudio
+    ? 'Los audios se descargan de Lingva al pulsar ▶.'
+    : studyVoice
+      ? `Usando ${formatVoiceLabel(studyVoice)}.`
+      : 'Selecciona una voz del idioma abajo.';
 
   return (
     <div className="settings-view">
@@ -144,8 +149,8 @@ export function SettingsView({
       <section className="card">
         <h2 className="card__title">Traducciones</h2>
         <p className="hint">
-          Elige el servicio para traducir oraciones y palabras. Las traducciones manuales se
-          conservan aunque cambies de servicio.
+          Por defecto se usa Google Translate. Lingva solo actúa como respaldo si Google falla.
+          Las traducciones manuales se conservan aunque cambies de servicio.
         </p>
         <label className="field">
           <span className="field__label">Servicio de traducción</span>
@@ -154,35 +159,50 @@ export function SettingsView({
             value={translationProvider}
             onChange={(e) => onTranslationProviderChange(e.target.value as TranslationProvider)}
           >
-            <option value="lingva">Lingva (predeterminado)</option>
-            <option value="google">Google Translate</option>
+            <option value="google">Google Translate (predeterminado)</option>
+            <option value="lingva">Lingva</option>
           </select>
         </label>
-        {translationProvider === 'google' && (
+        {translationProvider === 'google' ? (
           <p className="hint">
-            Usa el endpoint público de Google Translate. Si falla, la app vuelve a Lingva
-            automáticamente.
+            Traducciones vía <strong>translate.googleapis.com</strong>. Si falla, Lingva entra solo
+            para ese texto.
+          </p>
+        ) : (
+          <p className="hint">
+            Traducciones vía instancias públicas de Lingva (p. ej. lingva.ml).
           </p>
         )}
       </section>
 
       <section className="card">
         <h2 className="card__title">Pronunciación</h2>
+        <div
+          className={`settings-speech-status${usesOnlineAudio ? ' settings-speech-status--online' : ' settings-speech-status--native'}`}
+          role="status"
+        >
+          <span className="settings-speech-status__badge">
+            {usesOnlineAudio ? '🌐 Lingva' : '📱 Nativa'}
+          </span>
+          <div className="settings-speech-status__body">
+            <strong className="settings-speech-status__title">{speechSourceLabel}</strong>
+            <span className="settings-speech-status__detail">{speechSourceDetail}</span>
+          </div>
+        </div>
         <p className="hint">
-          Elige una voz de {langConfig.label.toLowerCase()} para pronunciar. Solo se listan voces
-          cuyo idioma coincide con el de estudio.
+          Elige una voz de {langConfig.label.toLowerCase()} para pronunciar cuando el modo es nativo.
         </p>
         <VoiceGenderControl
           value={voiceGender}
           onChange={onSelectVoiceGender}
           disabled={!canUseNativeSpeech || studyVoices.length === 0}
         />
-        {studyVoice && (
+        {studyVoice && usesOnlineAudio && (
           <p className="hint">
-            Voz activa: <strong>{formatVoiceLabel(studyVoice)}</strong>
+            Voz preferida (solo modo nativo): <strong>{formatVoiceLabel(studyVoice)}</strong>
           </p>
         )}
-        {!studyVoice && (
+        {!studyVoice && !usesOnlineAudio && (
           <p className="hint hint--warning">
             {!canUseNativeSpeech
               ? 'El navegador bloquea la voz del sistema fuera de HTTPS. Abre la app con https:// o localhost.'
@@ -213,13 +233,13 @@ export function SettingsView({
             </select>
           </label>
         )}
-        <div className="btn-row">
-          <button type="button" className="btn btn--secondary" onClick={onTestVoice}>
-            Probar voz
+        <div className="btn-row settings-voice-actions">
+          <button type="button" className="btn btn--secondary btn--sm" onClick={onTestVoice}>
+            Probar
           </button>
           <button
             type="button"
-            className="btn btn--secondary"
+            className="btn btn--secondary btn--sm"
             onClick={onReloadVoices}
             disabled={!canUseNativeSpeech}
           >
@@ -227,85 +247,87 @@ export function SettingsView({
           </button>
           <button
             type="button"
-            className="btn btn--secondary"
+            className="btn btn--ghost btn--sm"
             onClick={onClearVoice}
             disabled={!studyVoice}
           >
             Quitar voz
           </button>
         </div>
-        <p className="hint">
-          Modo actual:{' '}
-          <strong>{speechMode === 'native' ? 'Voz del dispositivo' : 'Audio en línea (Lingva)'}</strong>
-        </p>
-        {speechMode === 'online' && (
+        {usesOnlineAudio && studyVoices.length > 0 && canUseNativeSpeech && (
           <p className="hint hint--warning">
-            En modo en línea no puedes elegir voz del sistema. Usa <strong>https://</strong>, instala
-            voces del idioma y pulsa <strong>Recargar voces</strong>.
+            Hay voces nativas disponibles. Selecciona una y pulsa Recargar voces para usar el modo
+            nativo en lugar de Lingva.
+          </p>
+        )}
+        {usesOnlineAudio && studyVoices.length === 0 && canUseNativeSpeech && (
+          <p className="hint hint--warning">
+            Sin voces del idioma instaladas. Instala una voz de {langConfig.label.toLowerCase()} o
+            sigue usando Lingva.
           </p>
         )}
         {!canUseNativeSpeech && (
           <p className="hint hint--warning">
-            En el celular por red, el navegador suele bloquear la voz del sistema sin HTTPS.
+            El navegador bloquea la voz nativa fuera de HTTPS. Solo está disponible Lingva.
           </p>
         )}
       </section>
 
       <section className="card">
-        <h2 className="card__title">Backup y exportación</h2>
-        <p className="hint">
-          Exporta el estado del idioma actual (lecciones y vocabulario) para restaurarlo después.
-        </p>
-        <div className="btn-row">
-          <button type="button" className="btn btn--primary" onClick={handleExport}>
-            Exportar backup
-          </button>
-          <button
-            type="button"
-            className="btn btn--secondary"
-            onClick={() => fileRef.current?.click()}
-          >
-            Importar backup
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json,.json"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void handleImportFile(file);
-              e.target.value = '';
-            }}
-          />
-        </div>
-        <div className="btn-row">
-          <button
-            type="button"
-            className="btn btn--secondary"
-            onClick={() =>
-              downloadTextFile(
-                exportVocabularyJson(state.vocabulary),
-                `vocabulario-${studyLanguage}-${dateStamp}.json`,
-                'application/json',
-              )
-            }
-          >
-            Exportar vocabulario (JSON)
-          </button>
-          <button
-            type="button"
-            className="btn btn--secondary"
-            onClick={() =>
-              downloadTextFile(
-                exportVocabularyCsv(state.vocabulary),
-                `vocabulario-${studyLanguage}-${dateStamp}.csv`,
-                'text/csv',
-              )
-            }
-          >
-            Exportar vocabulario (CSV)
-          </button>
+        <h2 className="card__title">Datos</h2>
+        <div className="settings-export">
+          <div className="settings-export__backup">
+            <button type="button" className="btn btn--primary" onClick={handleExport}>
+              Exportar backup
+            </button>
+            <button
+              type="button"
+              className="btn btn--secondary"
+              onClick={() => fileRef.current?.click()}
+            >
+              Importar
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json,.json"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleImportFile(file);
+                e.target.value = '';
+              }}
+            />
+          </div>
+          <div className="settings-export__vocab">
+            <span className="settings-export__vocab-label">Vocabulario</span>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() =>
+                downloadTextFile(
+                  exportVocabularyJson(state.vocabulary),
+                  `vocabulario-${studyLanguage}-${dateStamp}.json`,
+                  'application/json',
+                )
+              }
+            >
+              JSON
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() =>
+                downloadTextFile(
+                  exportVocabularyCsv(state.vocabulary),
+                  `vocabulario-${studyLanguage}-${dateStamp}.csv`,
+                  'text/csv',
+                )
+              }
+            >
+              CSV
+            </button>
+          </div>
         </div>
       </section>
 

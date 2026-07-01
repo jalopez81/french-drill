@@ -1,4 +1,5 @@
 import type { StudyLanguage } from '../config/languages';
+import { mapWithConcurrency } from './requestQueue';
 
 const memoryCache = new Map<string, Uint8Array>();
 let activeLang: StudyLanguage = 'fr';
@@ -139,27 +140,10 @@ export async function cacheAudio(text: string, bytes: Uint8Array): Promise<void>
   }
 }
 
-async function mapWithConcurrency<T>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T) => Promise<void>,
-): Promise<void> {
-  const queue = [...items];
-  const runners = Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
-    while (queue.length > 0) {
-      const item = queue.shift();
-      if (item === undefined) return;
-      await worker(item);
-    }
-  });
-
-  await Promise.all(runners);
-}
-
 export async function prefetchAudio(
   texts: string[],
   fetcher: (text: string) => Promise<Uint8Array>,
-  concurrency = 3,
+  concurrency = 1,
 ): Promise<number> {
   const keys = [...new Set(texts.map(cacheKey).filter(Boolean))];
   const missing: string[] = [];

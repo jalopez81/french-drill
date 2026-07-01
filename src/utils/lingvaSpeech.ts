@@ -2,10 +2,13 @@ import type { StudyLanguage } from '../config/languages';
 import { cacheAudio, getCachedAudio, prefetchAudio } from './audioCache';
 import { LINGVA_INSTANCES } from './lingva';
 import { LANGUAGES } from '../config/languages';
+import { lingvaFetch } from './lingvaClient';
 
 let currentAudio: HTMLAudioElement | null = null;
 let currentObjectUrl: string | null = null;
 let activeLang: StudyLanguage = 'fr';
+
+const inflightAudio = new Map<string, Promise<Uint8Array>>();
 
 function stopCurrentAudio(): void {
   if (currentAudio) {
@@ -23,20 +26,28 @@ export function activateSpeechLang(lang: StudyLanguage): void {
 }
 
 export async function fetchStudyAudio(text: string): Promise<Uint8Array> {
-  const cached = await getCachedAudio(text);
+  const key = text.trim();
+  if (!key) throw new Error('Texto vacío');
+
+  const cached = await getCachedAudio(key);
   if (cached) return cached;
 
+  const pending = inflightAudio.get(key);
+  if (pending) return pending;
+
+  const promise = fetchStudyAudioRemote(key).finally(() => inflightAudio.delete(key));
+  inflightAudio.set(key, promise);
+  return promise;
+}
+
+async function fetchStudyAudioRemote(text: string): Promise<Uint8Array> {
   const lingvaCode = LANGUAGES[activeLang].lingvaCode;
   let lastError: unknown;
 
   for (const instance of LINGVA_INSTANCES) {
     try {
       const url = `${instance}/api/v1/audio/${lingvaCode}/${encodeURIComponent(text)}`;
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      const response = await lingvaFetch(url);
 
       const data = (await response.json()) as { audio?: number[] };
       if (!data.audio?.length) {

@@ -1,6 +1,7 @@
 import type { VocabEntry } from '../types';
 import { clearAllCachedAudio, removeCachedAudio } from './audioCache';
 import { isManualTranslation, removeCachedTranslation, translateToSpanish } from './translate';
+import { mapWithConcurrency } from './requestQueue';
 
 export interface RegenerateProgress {
   done: number;
@@ -15,22 +16,6 @@ export interface RegenerateResult {
   skippedManual: number;
   audioCount: number;
   failed: number;
-}
-
-async function mapWithConcurrency<T>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T) => Promise<void>,
-): Promise<void> {
-  const queue = [...items];
-  const runners = Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
-    while (queue.length > 0) {
-      const item = queue.shift();
-      if (item === undefined) return;
-      await worker(item);
-    }
-  });
-  await Promise.all(runners);
 }
 
 export async function regenerateWordAssets(
@@ -57,6 +42,7 @@ export async function regenerateVocabularyAssets(
   prefetchSpeech: (words: string[]) => Promise<number>,
   options?: {
     skipManual?: boolean;
+    prefetchAudio?: boolean;
     onProgress?: (progress: RegenerateProgress) => void;
   },
 ): Promise<RegenerateResult> {
@@ -68,7 +54,7 @@ export async function regenerateVocabularyAssets(
   let failed = 0;
   let done = 0;
 
-  await mapWithConcurrency(words, 2, async (word) => {
+  await mapWithConcurrency(words, 1, async (word) => {
     if (skipManual && isManualTranslation(word)) {
       skippedManual += 1;
       await removeCachedAudio(word);
@@ -94,9 +80,13 @@ export async function regenerateVocabularyAssets(
     });
   });
 
-  options?.onProgress?.({ done: 0, total: words.length, phase: 'audio' });
-  await clearAllCachedAudio();
-  const audioCount = await prefetchSpeech(words);
+  let audioCount = 0;
+
+  if (options?.prefetchAudio !== false) {
+    options?.onProgress?.({ done: 0, total: words.length, phase: 'audio' });
+    await clearAllCachedAudio();
+    audioCount = await prefetchSpeech(words);
+  }
 
   return { translations, translated, skippedManual, audioCount, failed };
 }
