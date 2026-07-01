@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { SavedText, Tab } from './types';
 import type { StudyLanguage } from './config/languages';
 import {
@@ -18,7 +18,8 @@ import { SettingsView } from './components/SettingsView';
 import { LanguageFlag } from './components/LanguageFlag';
 import { countDue } from './utils/spacedRepetition';
 import { migrateLegacyState, clearLastLessonId, loadLastLessonId, saveLastLessonId } from './utils/storage';
-import { migrateLegacyTranslationCache } from './utils/translate';
+import { migrateLegacyTranslationCache, initTranslationProvider, setTranslationProvider } from './utils/translate';
+import type { TranslationProvider } from './utils/translate';
 
 export default function App() {
   const [studyLanguage, setStudyLanguage] = useState<StudyLanguage>(getActiveLanguage);
@@ -30,6 +31,7 @@ export default function App() {
     saveCurrentText,
     removeSavedText,
     removeVocabEntry,
+    updateVocabTranslationForWord,
     markTextPracticed,
     rateCard,
     restoreFromBackup,
@@ -42,8 +44,12 @@ export default function App() {
     studyVoice,
     studyVoices,
     selectVoice,
+    clearVoice,
+    reloadVoices,
     voiceGender,
     selectVoiceGender,
+    selectWordVoice,
+    getWordVoiceOverrideKey,
     speechMode,
     speechSpeed,
     setSpeechSpeed,
@@ -55,6 +61,9 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('practice');
   const [loadRequest, setLoadRequest] = useState<{ text: SavedText; key: number } | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [translationProvider, setTranslationProviderState] = useState<TranslationProvider>(() =>
+    initTranslationProvider(),
+  );
 
   useEffect(() => {
     migrateLegacyState();
@@ -129,6 +138,8 @@ export default function App() {
     stop();
   };
 
+  const speakWord = useCallback((word: string) => speak(word, { word }), [speak]);
+
   return (
     <div className="app">
       <header className="app-header">
@@ -163,9 +174,14 @@ export default function App() {
               setSaveNotice(message);
               window.setTimeout(() => setSaveNotice(null), 2500);
             }}
+            onUpdateVocabTranslation={updateVocabTranslationForWord}
             prefetchSpeech={prefetchSpeech}
             speechSpeed={speechSpeed}
             onSpeechSpeedChange={setSpeechSpeed}
+            studyVoices={studyVoices}
+            speechMode={speechMode}
+            getWordVoiceOverrideKey={getWordVoiceOverrideKey}
+            onSelectWordVoice={selectWordVoice}
           />
         )}
         {tab === 'texts' && (
@@ -181,7 +197,7 @@ export default function App() {
             <h2 className="section-title">Vocabulario ({state.vocabulary.length})</h2>
             <VocabularyList
               entries={state.vocabulary}
-              onSpeak={speak}
+              onSpeak={speakWord}
               onDelete={removeVocabEntry}
               speaking={speaking}
             />
@@ -203,7 +219,7 @@ export default function App() {
             speaking={speaking}
             onReveal={() => flashcards.setRevealed(true)}
             onRate={(rating) => flashcards.rateCard(rating, rateCard)}
-            onSpeak={speak}
+            onSpeak={speakWord}
             onRestart={() => flashcards.rebuildQueue('due')}
             onStudyAll={() => flashcards.rebuildQueue('all')}
           />
@@ -218,10 +234,17 @@ export default function App() {
             voiceGender={voiceGender}
             onSelectVoiceGender={selectVoiceGender}
             onSelectVoice={selectVoice}
+            onClearVoice={clearVoice}
+            onReloadVoices={reloadVoices}
             onTestVoice={() => speak(langConfig.voiceTestPhrase)}
             speechMode={speechMode}
             canUseNativeSpeech={nativeSpeech}
             systemVoiceCount={systemVoiceCount}
+            translationProvider={translationProvider}
+            onTranslationProviderChange={(provider) => {
+              setTranslationProvider(provider);
+              setTranslationProviderState(provider);
+            }}
             onImport={(json) => {
               try {
                 restoreFromBackup(json);

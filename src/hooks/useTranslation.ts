@@ -1,7 +1,14 @@
 import { useCallback, useState } from 'react';
 import { splitIntoSentences } from '../utils/sentenceSplitter';
 import { uniqueWords } from '../utils/wordExtractor';
-import { getCachedTranslation, translateBulk, translateToSpanish } from '../utils/translate';
+import {
+  getCachedTranslation,
+  isManualTranslation,
+  removeCachedTranslation,
+  setManualTranslation,
+  translateBulk,
+  translateToSpanish,
+} from '../utils/translate';
 
 export function useTranslation() {
   const [translations, setTranslations] = useState<Record<string, string>>({});
@@ -38,17 +45,23 @@ export function useTranslation() {
 
   const hasError = useCallback(
     (text: string): boolean => errorKeys.has(text.trim()),
-    [loadingKeys],
+    [errorKeys],
   );
 
-  const fetchTranslation = useCallback(async (text: string) => {
+  const isManual = useCallback((text: string): boolean => isManualTranslation(text.trim()), []);
+
+  const fetchTranslation = useCallback(async (text: string, options?: { force?: boolean }) => {
     const key = text.trim();
     if (!key) return;
 
-    const cached = getCachedTranslation(key);
-    if (cached) {
-      setTranslations((prev) => (prev[key] ? prev : { ...prev, [key]: cached }));
-      return;
+    if (!options?.force) {
+      const cached = getCachedTranslation(key);
+      if (cached) {
+        setTranslations((prev) => (prev[key] ? prev : { ...prev, [key]: cached }));
+        return;
+      }
+    } else {
+      removeCachedTranslation(key);
     }
 
     let shouldFetch = false;
@@ -67,7 +80,7 @@ export function useTranslation() {
     });
 
     try {
-      const translated = await translateToSpanish(key);
+      const translated = await translateToSpanish(key, { force: options?.force });
       setTranslations((prev) => ({ ...prev, [key]: translated }));
     } catch {
       setErrorKeys((prev) => new Set(prev).add(key));
@@ -78,6 +91,20 @@ export function useTranslation() {
         return next;
       });
     }
+  }, []);
+
+  const saveManualTranslation = useCallback((text: string, translation: string) => {
+    const key = text.trim();
+    const value = translation.trim();
+    if (!key || !value) return;
+
+    setManualTranslation(key, value);
+    setTranslations((prev) => ({ ...prev, [key]: value }));
+    setErrorKeys((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
   }, []);
 
   const translateAllText = useCallback(async (content: string) => {
@@ -124,7 +151,9 @@ export function useTranslation() {
     getTranslation,
     isLoading,
     hasError,
+    isManual,
     fetchTranslation,
+    saveManualTranslation,
     translateAllText,
     isTranslatingAll,
     isTextFullyTranslated,

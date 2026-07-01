@@ -26,7 +26,7 @@ function frenchNameHints(name: string): boolean {
   return (
     /\b(français|francais|french|france)\b/.test(name) ||
     /\(france\)|\(français\)|\(french\)/.test(name) ||
-    /hortense|denise|julie|eloise|élodie|elodie|celeste|céleste|clarisse|jacqueline|caroline|fabrice|charline|yves|virginie|audrey|marie|amelie|amélie/.test(
+    /hortense|denise|julie|eloise|élodie|elodie|celeste|céleste|clarisse|jacqueline|caroline|fabrice|charline|yves|virginie|audrey|marie|amelie|amélie|léa|lea|aurelie|aurélie|damien|nicolas|jacques|thomas|daniel/.test(
       name,
     )
   );
@@ -42,15 +42,32 @@ function englishNameHints(name: string): boolean {
   );
 }
 
-function isStudyVoice(voice: SpeechSynthesisVoice, lang: StudyLanguage): boolean {
+function isOtherStudyLanguage(voice: SpeechSynthesisVoice, lang: StudyLanguage): boolean {
+  const voiceLang = normalizeLang(voice.lang);
+  const name = voice.name.toLowerCase();
+
+  if (lang === 'fr') {
+    if (voiceLang.startsWith('en')) return true;
+    if (englishNameHints(name) && !voiceLang.startsWith('fr')) return true;
+    return false;
+  }
+
+  if (voiceLang.startsWith('fr')) return true;
+  if (frenchNameHints(name) && !voiceLang.startsWith('en')) return true;
+  return false;
+}
+
+export function isStudyVoice(voice: SpeechSynthesisVoice, lang: StudyLanguage): boolean {
+  if (isOtherStudyLanguage(voice, lang)) return false;
+
   const code = LANGUAGES[lang].lingvaCode;
   const voiceLang = normalizeLang(voice.lang);
 
   if (voiceLang === code || voiceLang.startsWith(`${code}-`)) return true;
 
   const name = voice.name.toLowerCase();
-  if (lang === 'fr') return frenchNameHints(name);
-  return englishNameHints(name);
+  if (lang === 'fr') return frenchNameHints(name) && !englishNameHints(name);
+  return englishNameHints(name) && !frenchNameHints(name);
 }
 
 function scoreStudyVoice(voice: SpeechSynthesisVoice, lang: StudyLanguage): number {
@@ -177,8 +194,35 @@ export function hasGenderVoiceChoice(lang: StudyLanguage): boolean {
   return hasFemale && hasMale;
 }
 
+export function voiceKey(voice: SpeechSynthesisVoice): string {
+  return `${voice.name}::${voice.lang}`;
+}
+
+export function findVoiceByKey(key: string): SpeechSynthesisVoice | null {
+  const voices = getSystemVoices();
+  return voices.find((voice) => voiceKey(voice) === key) ?? null;
+}
+
+export function formatVoiceLabel(voice: SpeechSynthesisVoice): string {
+  return `${voice.name} (${voice.lang})`;
+}
+
 export function getSystemVoices(): SpeechSynthesisVoice[] {
   return window.speechSynthesis?.getVoices() ?? [];
+}
+
+export function clearVoicePreference(lang: StudyLanguage): void {
+  localStorage.removeItem(voicePrefKey(lang));
+  voiceCache.delete(lang);
+}
+
+export function reloadStudyVoices(lang: StudyLanguage): SpeechSynthesisVoice[] {
+  voiceCache.delete(lang);
+  const synth = window.speechSynthesis;
+  if (synth) {
+    wakeVoiceList(synth);
+  }
+  return listStudyVoices(lang);
 }
 
 function wakeVoiceList(synth: SpeechSynthesis): void {

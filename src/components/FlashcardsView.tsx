@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { FlashcardRating, VocabEntry } from '../types';
 import { formatNextReview } from '../utils/spacedRepetition';
 import { FlashcardSummary } from './FlashcardSummary';
@@ -48,11 +48,13 @@ export function FlashcardsView({
   onStudyAll,
 }: FlashcardsViewProps) {
   const withoutTranslation = vocabulary.length - totalCount;
+  const onSpeakRef = useRef(onSpeak);
+  onSpeakRef.current = onSpeak;
 
   useEffect(() => {
     if (!currentCard) return;
-    void onSpeak(currentCard.word);
-  }, [currentCard?.id, onSpeak]);
+    void onSpeakRef.current(currentCard.word);
+  }, [currentCard?.id]);
 
   if (!hasDeck) {
     return (

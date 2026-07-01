@@ -16,30 +16,52 @@ import {
   SPEECH_SPEED_RATES,
 } from '../utils/speechSpeed';
 import {
+  clearVoicePreference,
+  findVoiceByKey,
   getStudyVoice,
   getSystemVoices,
   hasGenderVoiceChoice,
+  isStudyVoice,
   listStudyVoices,
   loadVoiceGender,
-  pickRandomNativeVoice,
   pickVoiceForGender,
   preloadStudyVoices,
+  reloadStudyVoices,
   resolveVoiceGender,
   saveVoiceGender,
   setPreferredStudyVoice,
+  voiceKey,
   voicePrefKey,
   type VoiceGender,
 } from '../utils/studyVoice';
+import {
+  clearWordVoiceKey,
+  getWordVoiceKey,
+  setWordVoiceKey,
+} from '../utils/wordVoice';
 
 export type SpeechMode = 'native' | 'online';
 
-function voiceKey(voice: SpeechSynthesisVoice): string {
-  return `${voice.name}::${voice.lang}`;
+export interface SpeakOptions {
+  word?: string;
 }
 
-function findVoiceByKey(key: string): SpeechSynthesisVoice | null {
-  const voices = window.speechSynthesis?.getVoices() ?? [];
-  return voices.find((voice) => voiceKey(voice) === key) ?? null;
+function resolveVoiceForSpeech(
+  lang: StudyLanguage,
+  preferred: SpeechSynthesisVoice | null,
+  word?: string,
+): SpeechSynthesisVoice | null {
+  if (word) {
+    const overrideKey = getWordVoiceKey(lang, word);
+    if (overrideKey) {
+      const overrideVoice = findVoiceByKey(overrideKey);
+      if (overrideVoice && isStudyVoice(overrideVoice, lang)) {
+        return overrideVoice;
+      }
+    }
+  }
+
+  return preferred ?? pickVoiceForGender(lang, loadVoiceGender(lang)) ?? getStudyVoice(lang);
 }
 
 export function useSpeech(studyLanguage: StudyLanguage) {
@@ -69,6 +91,33 @@ export function useSpeech(studyLanguage: StudyLanguage) {
     voiceGenderRef.current = voiceGender;
   }, [voiceGender]);
 
+  const refreshVoiceLists = useCallback(() => {
+    setStudyVoices(listStudyVoices(studyLanguage));
+    setSystemVoiceCount(getSystemVoices().length);
+  }, [studyLanguage]);
+
+  const applyVoiceSelection = useCallback(
+    (selected: SpeechSynthesisVoice | null) => {
+      if (selected) {
+        setPreferredStudyVoice(studyLanguage, selected);
+        studyVoiceRef.current = selected;
+        setStudyVoice(selected);
+        setVoiceGender(resolveVoiceGender(selected, studyLanguage));
+        localStorage.setItem(voicePrefKey(studyLanguage), voiceKey(selected));
+        if (canUseNativeSpeech()) {
+          setSpeechMode('native');
+        }
+      } else {
+        clearVoicePreference(studyLanguage);
+        studyVoiceRef.current = null;
+        setStudyVoice(null);
+      }
+
+      refreshVoiceLists();
+    },
+    [refreshVoiceLists, studyLanguage],
+  );
+
   useEffect(() => {
     activateSpeechLang(studyLanguage);
     window.speechSynthesis?.cancel();
@@ -79,20 +128,15 @@ export function useSpeech(studyLanguage: StudyLanguage) {
       const savedVoice = savedKey ? findVoiceByKey(savedKey) : null;
       const gender = loadVoiceGender(studyLanguage);
       const genderVoice = pickVoiceForGender(studyLanguage, gender);
-      const selected = savedVoice ?? genderVoice ?? voice ?? getStudyVoice(studyLanguage);
+      const selected =
+        (savedVoice && isStudyVoice(savedVoice, studyLanguage) ? savedVoice : null) ??
+        genderVoice ??
+        voice ??
+        getStudyVoice(studyLanguage);
 
-      if (selected) setPreferredStudyVoice(studyLanguage, selected);
-
-      studyVoiceRef.current = selected;
-      setStudyVoice(selected);
-      setStudyVoices(listStudyVoices(studyLanguage));
-      setSystemVoiceCount(getSystemVoices().length);
-      setVoiceGender(resolveVoiceGender(selected, studyLanguage));
-
-      const nativeAvailable = canUseNativeSpeech() && Boolean(selected);
-      setSpeechMode(nativeAvailable ? 'native' : 'online');
+      applyVoiceSelection(selected);
     });
-  }, [studyLanguage]);
+  }, [applyVoiceSelection, studyLanguage]);
 
   useEffect(() => {
     return () => {
@@ -109,16 +153,10 @@ export function useSpeech(studyLanguage: StudyLanguage) {
 
   const selectVoice = useCallback(
     (voice: SpeechSynthesisVoice) => {
-      setPreferredStudyVoice(studyLanguage, voice);
-      studyVoiceRef.current = voice;
-      setStudyVoice(voice);
-      setVoiceGender(resolveVoiceGender(voice, studyLanguage));
-      localStorage.setItem(voicePrefKey(studyLanguage), voiceKey(voice));
-      if (canUseNativeSpeech()) {
-        setSpeechMode('native');
-      }
+      if (!isStudyVoice(voice, studyLanguage)) return;
+      applyVoiceSelection(voice);
     },
-    [studyLanguage],
+    [applyVoiceSelection, studyLanguage],
   );
 
   const selectVoiceGender = useCallback(
@@ -139,61 +177,111 @@ export function useSpeech(studyLanguage: StudyLanguage) {
     [selectVoice, studyLanguage],
   );
 
-  const speakNative = useCallback((text: string, rate: number, speechTag: string) => {
-    const synth = window.speechSynthesis;
-    if (!text.trim() || !synth) {
-      return Promise.reject(new Error('Voz nativa no disponible'));
-    }
+  const clearVoice = useCallback(() => {
+    window.speechSynthesis?.cancel();
+    stopLingvaSpeech();
+    applyVoiceSelection(null);
+  }, [applyVoiceSelection]);
 
-    synth.cancel();
+  const reloadVoices = useCallback(() => {
+    window.speechSynthesis?.cancel();
+    stopLingvaSpeech();
+    clearVoicePreference(studyLanguage);
+    reloadStudyVoices(studyLanguage);
 
-    const voice =
-      pickRandomNativeVoice(studyLanguage, voiceGenderRef.current) ??
-      studyVoiceRef.current ??
-      getStudyVoice(studyLanguage);
+    const gender = voiceGenderRef.current;
+    const selected = pickVoiceForGender(studyLanguage, gender) ?? getStudyVoice(studyLanguage);
+    applyVoiceSelection(selected);
+  }, [applyVoiceSelection, studyLanguage]);
 
-    return new Promise<void>((resolve, reject) => {
-      const run = () => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = voice?.lang ?? speechTag;
+  const selectWordVoice = useCallback(
+    (word: string, voice: SpeechSynthesisVoice | null) => {
+      if (voice) {
+        if (!isStudyVoice(voice, studyLanguage)) return;
+        setWordVoiceKey(studyLanguage, word, voiceKey(voice));
+        return;
+      }
+      clearWordVoiceKey(studyLanguage, word);
+    },
+    [studyLanguage],
+  );
 
-        if (voice) {
-          utterance.voice = voice;
-        }
+  const getWordVoiceOverrideKey = useCallback(
+    (word: string) => getWordVoiceKey(studyLanguage, word),
+    [studyLanguage],
+  );
 
-        utterance.rate = rate;
+  const speakNative = useCallback(
+    (text: string, rate: number, speechTag: string, word?: string) => {
+      const synth = window.speechSynthesis;
+      if (!text.trim() || !synth) {
+        return Promise.reject(new Error('Voz nativa no disponible'));
+      }
 
-        utterance.onstart = () => {
-          speakingRef.current = true;
-          setSpeaking(true);
-        };
+      synth.cancel();
 
-        utterance.onend = () => {
-          speakingRef.current = false;
-          setSpeaking(false);
-          resolve();
-        };
+      const voice = resolveVoiceForSpeech(studyLanguage, studyVoiceRef.current, word);
 
-        utterance.onerror = (event) => {
-          speakingRef.current = false;
-          setSpeaking(false);
-          if (event.error === 'interrupted' || event.error === 'canceled') {
-            resolve();
-            return;
+      return new Promise<void>((resolve, reject) => {
+        const run = () => {
+          synth.getVoices();
+
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = voice?.lang ?? speechTag;
+
+          if (voice) {
+            utterance.voice = voice;
           }
-          reject(new Error('Error de voz nativa'));
+
+          utterance.rate = rate;
+
+          const resumeInterval = window.setInterval(() => {
+            if (synth.speaking && synth.paused) {
+              synth.resume();
+            }
+          }, 200);
+
+          const finish = (callback: () => void) => {
+            window.clearInterval(resumeInterval);
+            speakingRef.current = false;
+            setSpeaking(false);
+            callback();
+          };
+
+          utterance.onstart = () => {
+            speakingRef.current = true;
+            setSpeaking(true);
+            if (synth.paused) {
+              synth.resume();
+            }
+          };
+
+          utterance.onend = () => {
+            finish(resolve);
+          };
+
+          utterance.onerror = (event) => {
+            finish(() => {
+              if (event.error === 'interrupted' || event.error === 'canceled') {
+                resolve();
+                return;
+              }
+              reject(new Error('Error de voz nativa'));
+            });
+          };
+
+          synth.speak(utterance);
+
+          if (synth.paused) {
+            synth.resume();
+          }
         };
 
-        synth.speak(utterance);
-
-        if (synth.paused) {
-          synth.resume();
-        }
-      };
-
-      window.setTimeout(run, 50);
-    });
-  }, [studyLanguage]);
+        window.setTimeout(run, 100);
+      });
+    },
+    [studyLanguage],
+  );
 
   const speakOnline = useCallback(async (text: string, playbackRate: number) => {
     speakingRef.current = true;
@@ -208,7 +296,7 @@ export function useSpeech(studyLanguage: StudyLanguage) {
   }, []);
 
   const speak = useCallback(
-    async (text: string) => {
+    async (text: string, options?: SpeakOptions) => {
       if (!text.trim()) return;
 
       const speed = speechSpeedRef.current;
@@ -225,7 +313,7 @@ export function useSpeech(studyLanguage: StudyLanguage) {
 
       if (preferNative) {
         try {
-          await speakNative(text, nativeRate, speechTag);
+          await speakNative(text, nativeRate, speechTag, options?.word);
           return;
         } catch {
           setSpeechMode('online');
@@ -237,7 +325,7 @@ export function useSpeech(studyLanguage: StudyLanguage) {
       } catch {
         if (canUseNativeSpeech()) {
           try {
-            await speakNative(text, nativeRate, speechTag);
+            await speakNative(text, nativeRate, speechTag, options?.word);
             setSpeechMode('native');
           } catch {
             // no-op
@@ -266,8 +354,12 @@ export function useSpeech(studyLanguage: StudyLanguage) {
     studyVoice,
     studyVoices,
     selectVoice,
+    clearVoice,
+    reloadVoices,
     voiceGender,
     selectVoiceGender,
+    selectWordVoice,
+    getWordVoiceOverrideKey,
     canChooseVoiceGender: hasGenderVoiceChoice(studyLanguage),
     systemVoiceCount,
     speechMode,

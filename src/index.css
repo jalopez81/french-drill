@@ -560,6 +560,15 @@ textarea {
   min-height: 1.5em;
 }
 
+.word-panel__manual-tag {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.word-panel__translation-actions {
+  margin-bottom: 12px;
+}
+
 .sentence-card:hover {
   border-color: #c5c7d0;
 }

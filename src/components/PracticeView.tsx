@@ -13,20 +13,27 @@ import { SentenceNavPanel } from './SentenceNavPanel';
 import { SpeechSpeedControl } from './SpeechSpeedControl';
 import { WordPanelContainer } from './WordPanel';
 import type { DrillWordHighlight } from './SentenceCard';
+import type { SpeakOptions } from '../hooks/useSpeech';
+import type { SpeechMode } from '../hooks/useSpeech';
 import type { SpeechSpeed } from '../utils/speechSpeed';
 
 interface PracticeViewProps {
   studyLanguage: StudyLanguage;
   onSave: (content: string, title?: string) => void;
-  onSpeak: (text: string) => Promise<void>;
+  onSpeak: (text: string, options?: SpeakOptions) => Promise<void>;
   onStop: () => void;
   speaking: boolean;
+  studyVoices: SpeechSynthesisVoice[];
+  speechMode: SpeechMode;
+  getWordVoiceOverrideKey: (word: string) => string | null;
+  onSelectWordVoice: (word: string, voice: SpeechSynthesisVoice | null) => void;
   loadedText: SavedText | null;
   loadKey: number;
   onDetachLesson?: () => void;
   onCloseLesson?: () => void;
   onPracticeSaved?: (id: string) => void;
   onNotice?: (message: string) => void;
+  onUpdateVocabTranslation?: (word: string, translation: string) => void;
   prefetchSpeech: (texts: string[]) => Promise<number>;
   speechSpeed: SpeechSpeed;
   onSpeechSpeedChange: (speed: SpeechSpeed) => void;
@@ -59,12 +66,17 @@ export function PracticeView({
   onSpeak,
   onStop,
   speaking,
+  studyVoices,
+  speechMode,
+  getWordVoiceOverrideKey,
+  onSelectWordVoice,
   loadedText,
   loadKey,
   onDetachLesson,
   onCloseLesson,
   onPracticeSaved,
   onNotice,
+  onUpdateVocabTranslation,
   prefetchSpeech,
   speechSpeed,
   onSpeechSpeedChange,
@@ -88,7 +100,9 @@ export function PracticeView({
     getTranslation,
     isLoading,
     hasError,
+    isManual,
     fetchTranslation,
+    saveManualTranslation,
     translateAllText,
     isTranslatingAll,
     isTextFullyTranslated,
@@ -258,7 +272,7 @@ export function PracticeView({
 
     if (drillOccurrence && !drillHighlighted) {
       setDrillHighlighted(true);
-      void onSpeak(drillOccurrence.word);
+      void onSpeak(drillOccurrence.word, { word: drillOccurrence.word });
       return;
     }
 
@@ -270,7 +284,7 @@ export function PracticeView({
     setSelectedIndex(occurrence.sentenceIndex);
     setSelectedWord(null);
     if (activeLoadedId) onPracticeSaved?.(activeLoadedId);
-    void onSpeak(occurrence.word);
+    void onSpeak(occurrence.word, { word: occurrence.word });
   }, [activeLoadedId, drillHighlighted, drillOccurrence, onPracticeSaved, onSpeak, sentences]);
 
   const handleSelectWord = useCallback(
@@ -493,9 +507,21 @@ export function PracticeView({
         getTranslation={getTranslation}
         isTranslationLoading={isLoading}
         hasTranslationError={hasError}
+        isManualTranslation={isManual}
         fetchTranslation={fetchTranslation}
+        onSaveManualTranslation={(word, translation) => {
+          saveManualTranslation(word, translation);
+          onUpdateVocabTranslation?.(word, translation);
+        }}
+        onRefetchTranslation={(word) => {
+          void fetchTranslation(word, { force: true });
+        }}
+        studyVoices={studyVoices}
+        wordVoiceKey={selectedWord ? getWordVoiceOverrideKey(selectedWord) : null}
+        speechMode={speechMode}
         onClose={() => setSelectedWord(null)}
         onSpeak={onSpeak}
+        onSelectWordVoice={onSelectWordVoice}
         onStop={onStop}
         speaking={speaking}
       />

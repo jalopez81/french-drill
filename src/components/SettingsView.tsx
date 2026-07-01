@@ -4,7 +4,8 @@ import type { StudyLanguage } from '../config/languages';
 import { LANGUAGES } from '../config/languages';
 import type { AppState } from '../types';
 import type { VoiceGender } from '../utils/studyVoice';
-import { listVoicesForGender } from '../utils/studyVoice';
+import { formatVoiceLabel, voiceKey } from '../utils/studyVoice';
+import type { TranslationProvider } from '../utils/translate';
 import { exportState } from '../utils/storage';
 import { VoiceGenderControl } from './VoiceGenderControl';
 import { LanguageFlag } from './LanguageFlag';
@@ -19,10 +20,14 @@ interface SettingsViewProps {
   voiceGender: VoiceGender;
   onSelectVoiceGender: (gender: VoiceGender) => void;
   onSelectVoice: (voice: SpeechSynthesisVoice) => void;
+  onClearVoice: () => void;
+  onReloadVoices: () => void;
   onTestVoice: () => void;
   speechMode: SpeechMode;
   canUseNativeSpeech: boolean;
   systemVoiceCount: number;
+  translationProvider: TranslationProvider;
+  onTranslationProviderChange: (provider: TranslationProvider) => void;
 }
 
 export function SettingsView({
@@ -35,14 +40,17 @@ export function SettingsView({
   voiceGender,
   onSelectVoiceGender,
   onSelectVoice,
+  onClearVoice,
+  onReloadVoices,
   onTestVoice,
   speechMode,
   canUseNativeSpeech,
   systemVoiceCount,
+  translationProvider,
+  onTranslationProviderChange,
 }: SettingsViewProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const langConfig = LANGUAGES[studyLanguage];
-  const genderVoices = listVoicesForGender(studyLanguage, voiceGender);
 
   const handleExport = () => {
     const blob = new Blob([exportState(state)], { type: 'application/json' });
@@ -106,25 +114,44 @@ export function SettingsView({
       </section>
 
       <section className="card">
+        <h2 className="card__title">Traducciones</h2>
+        <p className="hint">
+          Elige el servicio para traducir oraciones y palabras. Las traducciones manuales se
+          conservan aunque cambies de servicio.
+        </p>
+        <label className="field">
+          <span className="field__label">Servicio de traducción</span>
+          <select
+            className="select"
+            value={translationProvider}
+            onChange={(e) => onTranslationProviderChange(e.target.value as TranslationProvider)}
+          >
+            <option value="lingva">Lingva (predeterminado)</option>
+            <option value="google">Google Translate</option>
+          </select>
+        </label>
+        {translationProvider === 'google' && (
+          <p className="hint">
+            Usa el endpoint público de Google Translate. Si falla, la app vuelve a Lingva
+            automáticamente.
+          </p>
+        )}
+      </section>
+
+      <section className="card">
         <h2 className="card__title">Pronunciación</h2>
         <p className="hint">
-          Elige el tipo de voz para {langConfig.label.toLowerCase()}. Con voz del dispositivo, cada
-          pronunciación usa una variante aleatoria del tipo elegido.
+          Elige una voz de {langConfig.label.toLowerCase()} para pronunciar. Solo se listan voces
+          cuyo idioma coincide con el de estudio.
         </p>
         <VoiceGenderControl
           value={voiceGender}
           onChange={onSelectVoiceGender}
           disabled={!canUseNativeSpeech || studyVoices.length === 0}
         />
-        {studyVoice && speechMode === 'native' && genderVoices.length > 1 && (
+        {studyVoice && (
           <p className="hint">
-            Voces disponibles ({voiceGender === 'female' ? 'mujer' : 'hombre'}):{' '}
-            <strong>{genderVoices.length}</strong> — se alternan al azar.
-          </p>
-        )}
-        {studyVoice && (speechMode !== 'native' || genderVoices.length <= 1) && (
-          <p className="hint">
-            Voz de referencia: <strong>{studyVoice.name}</strong>
+            Voz activa: <strong>{formatVoiceLabel(studyVoice)}</strong>
           </p>
         )}
         {!studyVoice && (
@@ -132,50 +159,66 @@ export function SettingsView({
             {!canUseNativeSpeech
               ? 'El navegador bloquea la voz del sistema fuera de HTTPS. Abre la app con https:// o localhost.'
               : systemVoiceCount === 0
-                ? 'El navegador aún no cargó las voces. Espera unos segundos y recarga la página.'
+                ? 'El navegador aún no cargó las voces. Usa «Recargar voces» o espera unos segundos.'
                 : studyVoices.length === 0
-                  ? `Se detectaron ${systemVoiceCount} voces, pero ninguna en ${langConfig.label.toLowerCase()}. En Windows: Configuración → Hora e idioma → Voz, instala «Francés (Francia)», reinicia el navegador y vuelve aquí.`
-                  : `No se detectó una voz de ${langConfig.label.toLowerCase()} en este dispositivo. Instala una voz en los ajustes del sistema.`}
+                  ? `Se detectaron ${systemVoiceCount} voces, pero ninguna en ${langConfig.label.toLowerCase()}. Instala una voz del idioma en los ajustes del sistema.`
+                  : `No hay voz de ${langConfig.label.toLowerCase()} seleccionada.`}
           </p>
         )}
-        {genderVoices.length > 1 && (
+        {studyVoices.length > 0 && (
           <label className="field">
-            <span className="field__label">Variante</span>
+            <span className="field__label">Voz del idioma</span>
             <select
               className="select"
-              value={studyVoice ? `${studyVoice.name}::${studyVoice.lang}` : ''}
+              value={studyVoice ? voiceKey(studyVoice) : ''}
               onChange={(e) => {
-                const voice = genderVoices.find(
-                  (item) => `${item.name}::${item.lang}` === e.target.value,
-                );
+                const voice = studyVoices.find((item) => voiceKey(item) === e.target.value);
                 if (voice) onSelectVoice(voice);
               }}
             >
-              {genderVoices.map((voice) => (
-                <option key={`${voice.name}-${voice.lang}`} value={`${voice.name}::${voice.lang}`}>
-                  {voice.name} ({voice.lang})
+              {!studyVoice && <option value="">Selecciona una voz…</option>}
+              {studyVoices.map((voice) => (
+                <option key={voiceKey(voice)} value={voiceKey(voice)}>
+                  {formatVoiceLabel(voice)}
                 </option>
               ))}
             </select>
           </label>
         )}
-        <button type="button" className="btn btn--secondary" onClick={onTestVoice}>
-          Probar voz
-        </button>
+        <div className="btn-row">
+          <button type="button" className="btn btn--secondary" onClick={onTestVoice}>
+            Probar voz
+          </button>
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={onReloadVoices}
+            disabled={!canUseNativeSpeech}
+          >
+            Recargar voces
+          </button>
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={onClearVoice}
+            disabled={!studyVoice}
+          >
+            Quitar voz
+          </button>
+        </div>
         <p className="hint">
           Modo actual:{' '}
           <strong>{speechMode === 'native' ? 'Voz del dispositivo' : 'Audio en línea (Lingva)'}</strong>
         </p>
         {speechMode === 'online' && (
           <p className="hint hint--warning">
-            En modo en línea no puedes elegir mujer u hombre. Usa <strong>https://</strong> y
-            instala voces del idioma en tu dispositivo para activar la voz nativa.
+            En modo en línea no puedes elegir voz del sistema. Usa <strong>https://</strong>, instala
+            voces del idioma y pulsa <strong>Recargar voces</strong>.
           </p>
         )}
         {!canUseNativeSpeech && (
           <p className="hint hint--warning">
-            En el celular por red, el navegador suele bloquear la voz del sistema sin HTTPS. Usa{' '}
-            <strong>https://</strong> al abrir la app (el servidor de desarrollo ya lo habilita) o deja que use audio en línea.
+            En el celular por red, el navegador suele bloquear la voz del sistema sin HTTPS.
           </p>
         )}
       </section>

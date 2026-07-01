@@ -10,6 +10,7 @@ import {
   saveState,
   saveText,
   touchSavedText,
+  updateVocabTranslation,
 } from '../utils/storage';
 import { persistTranslationCache } from '../utils/translate';
 
@@ -55,6 +56,10 @@ export function useAppState(studyLanguage: StudyLanguage) {
     setState((prev) => deleteVocabEntry(prev, id));
   }, []);
 
+  const updateVocabTranslationForWord = useCallback((word: string, translation: string) => {
+    setState((prev) => updateVocabTranslation(prev, word, translation));
+  }, []);
+
   const restoreFromBackup = useCallback((json: string) => {
     const restored = importState(json);
     setState(restored);
@@ -67,6 +72,7 @@ export function useAppState(studyLanguage: StudyLanguage) {
     saveCurrentText,
     removeSavedText,
     removeVocabEntry,
+    updateVocabTranslationForWord,
     markTextPracticed,
     rateCard,
     restoreFromBackup,

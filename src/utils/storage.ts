@@ -178,6 +178,23 @@ export function touchSavedText(state: AppState, id: string): AppState {
   };
 }
 
+export function updateVocabTranslation(
+  state: AppState,
+  word: string,
+  translation: string,
+): AppState {
+  const normalized = normalizeWord(word);
+  const trimmed = translation.trim();
+  if (!normalized || !trimmed) return state;
+
+  return {
+    ...state,
+    vocabulary: state.vocabulary.map((entry) =>
+      entry.normalized === normalized ? { ...entry, translation: trimmed } : entry,
+    ),
+  };
+}
+
 export function exportState(state: AppState): string {
   return JSON.stringify(state, null, 2);
 }
