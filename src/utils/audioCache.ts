@@ -66,6 +66,58 @@ export async function getCachedAudio(text: string): Promise<Uint8Array | null> {
   }
 }
 
+export async function removeCachedAudio(text: string): Promise<void> {
+  const key = cacheKey(text);
+  if (!key) return;
+
+  memoryCache.delete(`${activeLang}::${key}`);
+
+  try {
+    const db = await openDb(activeLang);
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('clips', 'readwrite');
+      const store = tx.objectStore('clips');
+      const request = store.delete(key);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    // no-op
+  }
+}
+
+export async function deleteAudioDatabase(lang: StudyLanguage): Promise<void> {
+  for (const key of [...memoryCache.keys()]) {
+    if (key.startsWith(`${lang}::`)) memoryCache.delete(key);
+  }
+
+  await new Promise<void>((resolve) => {
+    const request = indexedDB.deleteDatabase(dbName(lang));
+    request.onsuccess = () => resolve();
+    request.onerror = () => resolve();
+    request.onblocked = () => resolve();
+  });
+}
+
+export async function clearAllCachedAudio(lang: StudyLanguage = activeLang): Promise<void> {
+  for (const key of [...memoryCache.keys()]) {
+    if (key.startsWith(`${lang}::`)) memoryCache.delete(key);
+  }
+
+  try {
+    const db = await openDb(lang);
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('clips', 'readwrite');
+      const store = tx.objectStore('clips');
+      const request = store.clear();
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    // no-op
+  }
+}
+
 export async function cacheAudio(text: string, bytes: Uint8Array): Promise<void> {
   const key = cacheKey(text);
   if (!key || bytes.length === 0) return;

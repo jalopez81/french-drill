@@ -35,4 +35,16 @@ export type Tab = 'practice' | 'texts' | 'vocabulary' | 'flashcards' | 'settings
 
 export type FlashcardRating = 'again' | 'hard' | 'good' | 'easy';
 
+export type FlashcardCategory = 'new' | 'again' | 'hard' | 'good' | 'easy';
+
+export interface FlashcardSessionFilter {
+  textId?: string;
+  category?: FlashcardCategory;
+}
+
+export interface VocabCategoryFilter {
+  category?: FlashcardCategory;
+  textId?: string;
+}
+
 export const APP_STATE_VERSION = 2;

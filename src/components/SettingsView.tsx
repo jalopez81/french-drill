@@ -7,8 +7,11 @@ import type { VoiceGender } from '../utils/studyVoice';
 import { formatVoiceLabel, voiceKey } from '../utils/studyVoice';
 import type { TranslationProvider } from '../utils/translate';
 import { exportState } from '../utils/storage';
+import { exportVocabularyCsv, exportVocabularyJson, downloadTextFile } from '../utils/exportVocabulary';
+import type { Theme } from '../hooks/useTheme';
 import { VoiceGenderControl } from './VoiceGenderControl';
 import { LanguageFlag } from './LanguageFlag';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface SettingsViewProps {
   studyLanguage: StudyLanguage;
@@ -28,6 +31,9 @@ interface SettingsViewProps {
   systemVoiceCount: number;
   translationProvider: TranslationProvider;
   onTranslationProviderChange: (provider: TranslationProvider) => void;
+  theme: Theme;
+  onThemeChange: (theme: Theme) => void;
+  onResetAll: () => void | Promise<void>;
 }
 
 export function SettingsView({
@@ -48,8 +54,12 @@ export function SettingsView({
   systemVoiceCount,
   translationProvider,
   onTranslationProviderChange,
+  theme,
+  onThemeChange,
+  onResetAll,
 }: SettingsViewProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const { confirm } = useConfirm();
   const langConfig = LANGUAGES[studyLanguage];
 
   const handleExport = () => {
@@ -62,14 +72,15 @@ export function SettingsView({
     URL.revokeObjectURL(url);
   };
 
-  const handleImportFile = (file: File) => {
-    if (
-      !window.confirm(
-        '¿Importar este backup?\n\nSe reemplazarán todas las lecciones y el vocabulario del idioma actual.',
-      )
-    ) {
-      return;
-    }
+  const handleImportFile = async (file: File) => {
+    const confirmed = await confirm({
+      title: 'Importar backup',
+      message:
+        'Se reemplazarán todas las lecciones y el vocabulario del idioma actual. ¿Continuar?',
+      confirmLabel: 'Importar',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -82,8 +93,25 @@ export function SettingsView({
     reader.readAsText(file);
   };
 
+  const dateStamp = new Date().toISOString().slice(0, 10);
+
   return (
     <div className="settings-view">
+      <section className="card">
+        <h2 className="card__title">Apariencia</h2>
+        <label className="field">
+          <span className="field__label">Tema</span>
+          <select
+            className="select"
+            value={theme}
+            onChange={(event) => onThemeChange(event.target.value as Theme)}
+          >
+            <option value="light">Claro</option>
+            <option value="dark">Oscuro</option>
+          </select>
+        </label>
+      </section>
+
       <section className="card">
         <h2 className="card__title">Idioma de estudio</h2>
         <p className="hint">
@@ -224,7 +252,7 @@ export function SettingsView({
       </section>
 
       <section className="card">
-        <h2 className="card__title">Backup</h2>
+        <h2 className="card__title">Backup y exportación</h2>
         <p className="hint">
           Exporta el estado del idioma actual (lecciones y vocabulario) para restaurarlo después.
         </p>
@@ -246,10 +274,38 @@ export function SettingsView({
             hidden
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) handleImportFile(file);
+              if (file) void handleImportFile(file);
               e.target.value = '';
             }}
           />
+        </div>
+        <div className="btn-row">
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={() =>
+              downloadTextFile(
+                exportVocabularyJson(state.vocabulary),
+                `vocabulario-${studyLanguage}-${dateStamp}.json`,
+                'application/json',
+              )
+            }
+          >
+            Exportar vocabulario (JSON)
+          </button>
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={() =>
+              downloadTextFile(
+                exportVocabularyCsv(state.vocabulary),
+                `vocabulario-${studyLanguage}-${dateStamp}.csv`,
+                'text/csv',
+              )
+            }
+          >
+            Exportar vocabulario (CSV)
+          </button>
         </div>
       </section>
 
@@ -265,6 +321,21 @@ export function SettingsView({
             <span className="stat__label">Palabras</span>
           </div>
         </div>
+      </section>
+
+      <section className="card settings-danger-zone">
+        <h2 className="card__title">Zona de peligro</h2>
+        <p className="hint">
+          Borra todas las lecciones, vocabulario, progreso de memoria, cachés de traducción y audios
+          en todos los idiomas. Exporta un backup antes si quieres conservar tus datos.
+        </p>
+        <button
+          type="button"
+          className="btn btn--danger"
+          onClick={() => void onResetAll()}
+        >
+          Limpiar y resetear todo
+        </button>
       </section>
     </div>
   );

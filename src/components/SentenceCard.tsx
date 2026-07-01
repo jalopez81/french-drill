@@ -21,6 +21,9 @@ interface SentenceCardProps {
   onSpeakSentence: () => void;
   onSelectSentence: () => void;
   onSelectWord: (word: string) => void;
+  sentenceRef?: (element: HTMLElement | null) => void;
+  wordRef?: (tokenIndex: number, element: HTMLElement | null) => void;
+  focusMode?: boolean;
 }
 
 export function SentenceCard({
@@ -38,13 +41,16 @@ export function SentenceCard({
   onSpeakSentence,
   onSelectSentence,
   onSelectWord,
+  sentenceRef,
+  wordRef,
+  focusMode = false,
 }: SentenceCardProps) {
   const tokens = tokenizeSentence(sentence);
 
   return (
     <article
-      className={`sentence-card ${isSelected ? 'sentence-card--selected' : ''} ${isSpeaking ? 'sentence-card--speaking' : ''}`}
-      data-sentence-index={index}
+      className={`sentence-card ${isSelected ? 'sentence-card--selected' : ''} ${isSpeaking ? 'sentence-card--speaking' : ''}${focusMode ? ' sentence-card--focus' : ''}`}
+      ref={sentenceRef}
       onClick={onSelectSentence}
       role="button"
       tabIndex={0}
@@ -65,7 +71,7 @@ export function SentenceCard({
               <button
                 key={`${i}-${token.text}`}
                 type="button"
-                data-word-ref={`${index}-${i}`}
+                ref={(element) => wordRef?.(i, element)}
                 className={`word-btn ${!isSelected ? 'word-btn--inactive' : ''} ${selectedWord === token.text && isSelected ? 'word-btn--active' : ''} ${drillHighlight?.sentenceIndex === index && drillHighlight.tokenIndex === i ? 'word-btn--drill-highlight' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();

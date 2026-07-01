@@ -1,19 +1,16 @@
+import type { ReactNode } from 'react';
+
 interface TextInputProps {
   placeholder: string;
   title: string;
   onTitleChange: (value: string) => void;
   value: string;
   onChange: (value: string) => void;
-  onSave: () => void;
-  onCloseLesson?: () => void;
-  isLoadedLesson?: boolean;
-  onTranslate: () => void;
   onLoadSample: () => void;
-  canSave: boolean;
-  canTranslate: boolean;
-  translating: boolean;
-  translated: boolean;
-  saving?: boolean;
+  isLoadedLesson?: boolean;
+  editorCollapsed?: boolean;
+  showActions?: boolean;
+  actions?: ReactNode;
 }
 
 export function TextInput({
@@ -22,80 +19,48 @@ export function TextInput({
   onTitleChange,
   value,
   onChange,
-  onSave,
-  onCloseLesson,
-  isLoadedLesson = false,
-  onTranslate,
   onLoadSample,
-  canSave,
-  canTranslate,
-  translating,
-  translated,
-  saving = false,
+  isLoadedLesson = false,
+  editorCollapsed = false,
+  showActions = true,
+  actions,
 }: TextInputProps) {
+  const hasText = value.trim().length > 0;
+  const showCollapsed = editorCollapsed && hasText;
+
+  if (showCollapsed) return null;
+
   return (
-    <section className="card">
-      <div className="card__header">
-        <div className="card__actions">
-          <button
-            type="button"
-            className="btn btn--secondary btn--sm"
-            onClick={onTranslate}
-            disabled={!canTranslate || translating || saving}
-          >
-            {translating ? 'Traduciendo…' : translated ? 'Traducido ✓' : 'Traducir'}
-          </button>
-          {isLoadedLesson ? (
-            <button type="button" className="btn btn--secondary btn--sm" onClick={onCloseLesson}>
-              Cerrar lección
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn--primary btn--sm"
-              onClick={onSave}
-              disabled={!canSave || saving}
-            >
-              {saving ? 'Guardando…' : 'Guardar'}
-            </button>
-          )}
-        </div>
-      </div>
+    <section className="card practice-editor">
       {isLoadedLesson && (
-        <div className="banner banner--info">Práctica de lección guardada</div>
+        <div className="banner banner--info banner--compact">Lección guardada</div>
       )}
-      <label className="field field--compact">
-        <input
-          type="text"
-          className="title-input"
-          placeholder="Título"
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
+
+      <div className="practice-editor__fields">
+        <label className="field field--compact">
+          <input
+            type="text"
+            className="title-input"
+            placeholder="Título"
+            value={title}
+            onChange={(e) => onTitleChange(e.target.value)}
+          />
+        </label>
+        <textarea
+          className="text-input text-input--compact"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={3}
         />
-      </label>
-      <textarea
-        className="text-input"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        rows={4}
-      />
-      <p className="hint">
-        {isLoadedLesson ? (
-          <>
-            Estás practicando una lección guardada. <strong>Cerrar lección</strong> vacía el texto y
-            el título para empezar de nuevo.
-          </>
-        ) : (
-          <>
-            Usa <strong>Traducir</strong> para precargar traducciones y pronunciación. Al{' '}
-            <strong>Guardar</strong>, las palabras nuevas se agregan al vocabulario con su traducción y audio.
-          </>
+        {!hasText && (
+          <button type="button" className="btn btn--ghost btn--sm sample-btn" onClick={onLoadSample}>
+            + 5 oraciones B1 de prueba
+          </button>
         )}
-      </p>
-      <button type="button" className="btn btn--ghost btn--sm sample-btn" onClick={onLoadSample}>
-        + 5 oraciones B1 de prueba
-      </button>
+      </div>
+
+      {showActions && actions}
     </section>
   );
 }

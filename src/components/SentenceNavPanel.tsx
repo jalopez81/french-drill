@@ -1,3 +1,6 @@
+import { SpeechSpeedControl } from './SpeechSpeedControl';
+import type { SpeechSpeed } from '../utils/speechSpeed';
+
 interface SentenceNavPanelProps {
   selectedIndex: number | null;
   total: number;
@@ -6,6 +9,9 @@ interface SentenceNavPanelProps {
   onPrevious: () => void;
   onNext: () => void;
   onSpeak: () => void;
+  speechSpeed: SpeechSpeed;
+  onSpeechSpeedChange: (speed: SpeechSpeed) => void;
+  speechDisabled?: boolean;
 }
 
 export function SentenceNavPanel({
@@ -16,6 +22,9 @@ export function SentenceNavPanel({
   onPrevious,
   onNext,
   onSpeak,
+  speechSpeed,
+  onSpeechSpeedChange,
+  speechDisabled = false,
 }: SentenceNavPanelProps) {
   const position = selectedIndex !== null ? selectedIndex + 1 : null;
   const canGoPrevious = total > 0 && (selectedIndex === null || selectedIndex > 0);
@@ -31,7 +40,8 @@ export function SentenceNavPanel({
           disabled={total === 0}
           aria-label="Palabra aleatoria"
         >
-          ← Random
+          <span className="sentence-nav-panel__btn-full">← Aleatoria</span>
+          <span className="sentence-nav-panel__btn-short" aria-hidden>←</span>
         </button>
         <button
           type="button"
@@ -40,7 +50,8 @@ export function SentenceNavPanel({
           disabled={!canGoPrevious}
           aria-label="Oración anterior"
         >
-          ↑ Ant.
+          <span className="sentence-nav-panel__btn-full">↑ Ant.</span>
+          <span className="sentence-nav-panel__btn-short" aria-hidden>↑</span>
         </button>
         <button
           type="button"
@@ -49,7 +60,8 @@ export function SentenceNavPanel({
           disabled={total === 0}
           aria-label={speaking ? 'Detener pronunciación' : 'Pronunciar oración actual'}
         >
-          {speaking ? '■ Detener' : '▶ Pronunciar'}
+          <span className="sentence-nav-panel__btn-full">{speaking ? '■ Detener' : '▶ Pronunciar'}</span>
+          <span className="sentence-nav-panel__btn-short" aria-hidden>{speaking ? '■' : '▶'}</span>
         </button>
         <button
           type="button"
@@ -58,14 +70,25 @@ export function SentenceNavPanel({
           disabled={!canGoNext}
           aria-label="Siguiente oración"
         >
-          Sig. ↓
+          <span className="sentence-nav-panel__btn-full">Sig. ↓</span>
+          <span className="sentence-nav-panel__btn-short" aria-hidden>↓</span>
         </button>
       </div>
-      {position !== null && (
-        <p className="sentence-nav-panel__meta" aria-live="polite">
-          Oración {position} de {total}
-        </p>
-      )}
+
+      <div className="sentence-nav-panel__footer">
+        {position !== null && (
+          <p className="sentence-nav-panel__meta" aria-live="polite">
+            {position}/{total}
+          </p>
+        )}
+        <SpeechSpeedControl
+          value={speechSpeed}
+          onChange={onSpeechSpeedChange}
+          disabled={speechDisabled}
+          compact
+        />
+      </div>
+
       <p className="sentence-nav-panel__hint">← palabra · ↑↓ oraciones · → pronunciar</p>
     </div>
   );

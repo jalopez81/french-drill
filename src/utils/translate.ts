@@ -87,6 +87,16 @@ export function persistTranslationCache(lang: StudyLanguage = activeLang): void 
   writeManualCache(lang);
 }
 
+export function clearAllTranslationData(): void {
+  for (const lang of ['fr', 'en'] as StudyLanguage[]) {
+    memoryCaches[lang] = {};
+    manualCaches[lang] = {};
+    localStorage.removeItem(cacheStorageKey(lang));
+    localStorage.removeItem(manualStorageKey(lang));
+  }
+  localStorage.removeItem('french-drill-translations');
+}
+
 export function isManualTranslation(text: string): boolean {
   const key = text.trim();
   return Boolean(manualCaches[activeLang][key]);

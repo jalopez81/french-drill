@@ -33,3 +33,9 @@ export function clearWordVoiceKey(lang: StudyLanguage, word: string): void {
   delete map[normalizeWord(word)];
   writeMap(lang, map);
 }
+
+export function clearAllWordVoices(): void {
+  for (const lang of ['fr', 'en'] as StudyLanguage[]) {
+    localStorage.removeItem(storageKey(lang));
+  }
+}

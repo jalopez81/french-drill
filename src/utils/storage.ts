@@ -81,6 +81,14 @@ export function emptyState(): AppState {
   };
 }
 
+export function clearAllLanguageStates(): void {
+  for (const lang of ['fr', 'en'] as StudyLanguage[]) {
+    localStorage.removeItem(stateStorageKey(lang));
+    clearLastLessonId(lang);
+  }
+  localStorage.removeItem('french-drill-state');
+}
+
 function withCachedTranslation(word: string): string | undefined {
   return getCachedTranslation(word) ?? undefined;
 }
@@ -175,6 +183,16 @@ export function touchSavedText(state: AppState, id: string): AppState {
     savedTexts: state.savedTexts.map((t) =>
       t.id === id ? { ...t, lastPracticedAt: Date.now() } : t,
     ),
+  };
+}
+
+export function updateSavedTextTitle(state: AppState, id: string, title: string): AppState {
+  const trimmed = title.trim();
+  if (!trimmed) return state;
+
+  return {
+    ...state,
+    savedTexts: state.savedTexts.map((t) => (t.id === id ? { ...t, title: trimmed } : t)),
   };
 }
 

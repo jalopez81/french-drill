@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { SavedText, Tab } from './types';
+import type { FlashcardCategory, FlashcardSessionFilter, VocabCategoryFilter } from './types';
 import type { StudyLanguage } from './config/languages';
 import {
   getActiveLanguage,
@@ -9,6 +10,8 @@ import {
 import { useAppState } from './hooks/useAppState';
 import { useFlashcards } from './hooks/useFlashcards';
 import { useSpeech } from './hooks/useSpeech';
+import { useTheme } from './hooks/useTheme';
+import { ConfirmProvider, useConfirm } from './hooks/useConfirm';
 import { BottomNav } from './components/BottomNav';
 import { PracticeView } from './components/PracticeView';
 import { VocabularyList } from './components/VocabularyList';
@@ -20,10 +23,17 @@ import { countDue } from './utils/spacedRepetition';
 import { migrateLegacyState, clearLastLessonId, loadLastLessonId, saveLastLessonId } from './utils/storage';
 import { migrateLegacyTranslationCache, initTranslationProvider, setTranslationProvider, setManualTranslation, removeCachedTranslation, translateToSpanish } from './utils/translate';
 import type { TranslationProvider } from './utils/translate';
+import { recordStudyActivity } from './utils/progressStats';
+import { regenerateVocabularyAssets, regenerateWordAssets } from './utils/regenerateVocabulary';
+import type { RegenerateProgress } from './utils/regenerateVocabulary';
+import { removeCachedAudio } from './utils/audioCache';
+import { resetAllAppData } from './utils/resetAppData';
 
-export default function App() {
+function AppContent() {
   const [studyLanguage, setStudyLanguage] = useState<StudyLanguage>(getActiveLanguage);
   const langConfig = LANGUAGES[studyLanguage];
+  const { theme, setTheme } = useTheme();
+  const { confirm } = useConfirm();
 
   const {
     state,
@@ -32,9 +42,12 @@ export default function App() {
     removeSavedText,
     removeVocabEntry,
     updateVocabTranslationForWord,
+    bulkUpdateVocabTranslations,
     markTextPracticed,
+    renameSavedText,
     rateCard,
     restoreFromBackup,
+    resetAll,
   } = useAppState(studyLanguage);
 
   const {
@@ -64,6 +77,10 @@ export default function App() {
   const [translationProvider, setTranslationProviderState] = useState<TranslationProvider>(() =>
     initTranslationProvider(),
   );
+  const [flashcardFilter, setFlashcardFilter] = useState<FlashcardSessionFilter | null>(null);
+  const [vocabFilter, setVocabFilter] = useState<VocabCategoryFilter | null>(null);
+  const [regeneratingVocab, setRegeneratingVocab] = useState(false);
+  const [regenerateProgress, setRegenerateProgress] = useState<RegenerateProgress | null>(null);
 
   useEffect(() => {
     migrateLegacyState();
@@ -91,7 +108,7 @@ export default function App() {
   );
   const dueFlashcards = useMemo(() => countDue(studyDeck), [studyDeck]);
 
-  const flashcards = useFlashcards(state.vocabulary);
+  const flashcards = useFlashcards(state.vocabulary, state.savedTexts, flashcardFilter);
 
   const handleSave = (content: string, title?: string) => {
     saveCurrentText(content, title);
@@ -126,6 +143,7 @@ export default function App() {
   const handlePracticeSaved = (id: string) => {
     markTextPracticed(id);
     saveLastLessonId(studyLanguage, id);
+    recordStudyActivity(studyLanguage);
   };
 
   const handleLanguageChange = (newLang: StudyLanguage) => {
@@ -135,7 +153,30 @@ export default function App() {
     setActiveLanguage(newLang);
     setStudyLanguage(newLang);
     setTab('practice');
+    setFlashcardFilter(null);
+    setVocabFilter(null);
     stop();
+  };
+
+  const handleResetAll = async () => {
+    const confirmed = await confirm({
+      title: 'Resetear toda la app',
+      message:
+        'Se borrarán todas las lecciones, vocabulario, progreso de memoria, traducciones en caché y audios guardados en todos los idiomas. Esta acción no se puede deshacer.',
+      confirmLabel: 'Resetear todo',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    await resetAllAppData();
+    resetAll();
+    setLoadRequest(null);
+    setFlashcardFilter(null);
+    setVocabFilter(null);
+    setSaveNotice(null);
+    clearVoice();
+    reloadVoices();
+    setTab('practice');
   };
 
   const speakWord = useCallback((word: string) => speak(word, { word }), [speak]);
@@ -162,6 +203,117 @@ export default function App() {
     [updateVocabTranslationForWord],
   );
 
+  const handleRegenerateWord = useCallback(
+    async (word: string) => {
+      const translated = await regenerateWordAssets(word, { skipManual: false });
+      if (translated) {
+        updateVocabTranslationForWord(word, translated);
+      }
+      await removeCachedAudio(word);
+      await prefetchSpeech([word]);
+      return translated;
+    },
+    [prefetchSpeech, updateVocabTranslationForWord],
+  );
+
+  const handleRegenerateAllVocab = useCallback(async () => {
+    if (state.vocabulary.length === 0 || regeneratingVocab) return;
+
+    const confirmed = await confirm({
+      title: 'Regenerar vocabulario',
+      message:
+        'Se volverán a buscar traducciones y audios para todas las palabras.\n\nLas traducciones manuales se conservan, pero sus audios se regeneran.',
+      confirmLabel: 'Regenerar',
+    });
+    if (!confirmed) return;
+
+    setRegeneratingVocab(true);
+    setRegenerateProgress({ done: 0, total: state.vocabulary.length, phase: 'translate' });
+
+    try {
+      const result = await regenerateVocabularyAssets(
+        state.vocabulary,
+        prefetchSpeech,
+        {
+          skipManual: true,
+          onProgress: setRegenerateProgress,
+        },
+      );
+
+      if (Object.keys(result.translations).length > 0) {
+        bulkUpdateVocabTranslations(result.translations);
+      }
+
+      const parts = [
+        `${result.translated} traducciones`,
+        `${result.audioCount} audios`,
+      ];
+      if (result.skippedManual > 0) parts.push(`${result.skippedManual} manuales intactas`);
+      if (result.failed > 0) parts.push(`${result.failed} fallidas`);
+
+      setSaveNotice(`Regenerado: ${parts.join(' · ')}`);
+      window.setTimeout(() => setSaveNotice(null), 3500);
+    } finally {
+      setRegeneratingVocab(false);
+      setRegenerateProgress(null);
+    }
+  }, [
+    bulkUpdateVocabTranslations,
+    confirm,
+    prefetchSpeech,
+    regeneratingVocab,
+    state.vocabulary,
+  ]);
+
+  const handleFlashcardRate = useCallback(
+    (rating: Parameters<typeof flashcards.rateCard>[0]) => {
+      flashcards.rateCard(rating, (id, cardRating) => {
+        rateCard(id, cardRating);
+        recordStudyActivity(studyLanguage);
+      });
+    },
+    [flashcards, rateCard, studyLanguage],
+  );
+
+  const handleLessonCategoryClick = useCallback(
+    (textId: string, category: FlashcardCategory) => {
+      setFlashcardFilter({ textId, category });
+      setTab('flashcards');
+    },
+    [],
+  );
+
+  const handleFlashcardCategoryClick = useCallback((category: FlashcardCategory) => {
+    flashcards.startCategorySession(category);
+  }, [flashcards]);
+
+  const handleVocabCategoryClick = useCallback((category: FlashcardCategory) => {
+    setVocabFilter({ category });
+    setTab('vocabulary');
+  }, []);
+
+  const handleConfirmDeleteLesson = useCallback(
+    (title: string) =>
+      confirm({
+        title: 'Borrar lección',
+        message: `¿Borrar la lección «${title}»?\n\nLas palabras del vocabulario no se borran.`,
+        confirmLabel: 'Borrar',
+        variant: 'danger',
+      }),
+    [confirm],
+  );
+
+  const handleConfirmDeleteWord = useCallback(
+    (word: string) =>
+      confirm({
+        title: 'Borrar palabra',
+        message: `¿Borrar «${word}» del vocabulario?\n\nTambién desaparecerá de Memoria.`,
+        confirmLabel: 'Borrar',
+        variant: 'danger',
+      }),
+    [confirm],
+  );
+
   return (
     <div className="app">
       <header className="app-header">
@@ -183,6 +335,7 @@ export default function App() {
           <PracticeView
             key={studyLanguage}
             studyLanguage={studyLanguage}
+            vocabulary={state.vocabulary}
             onSave={handleSave}
             onSpeak={speak}
             onStop={stop}
@@ -210,26 +363,40 @@ export default function App() {
           <SavedTextsView
             texts={state.savedTexts}
             vocabulary={state.vocabulary}
+            studyLanguage={studyLanguage}
             onPractice={handleLoadText}
             onDelete={handleDeleteText}
+            onUpdateTitle={renameSavedText}
+            onCategoryClick={handleLessonCategoryClick}
+            onVocabCategoryClick={handleVocabCategoryClick}
+            onConfirmDelete={handleConfirmDeleteLesson}
           />
         )}
         {tab === 'vocabulary' && (
           <section className="vocab-view">
-            <h2 className="section-title">Vocabulario ({state.vocabulary.length})</h2>
             <VocabularyList
               entries={state.vocabulary}
+              savedTexts={state.savedTexts}
+              categoryFilter={vocabFilter}
+              onClearCategoryFilter={() => setVocabFilter(null)}
+              onCategoryFilter={(category) =>
+                setVocabFilter(category ? { category } : null)
+              }
               onSpeak={speakWord}
               onSaveTranslation={handleSaveWordTranslation}
-              onRefetchTranslation={handleRefetchWordTranslation}
+              onRegenerateWord={handleRegenerateWord}
+              onRegenerateAll={() => void handleRegenerateAllVocab()}
+              regenerating={regeneratingVocab}
+              regenerateProgress={regenerateProgress}
               onDelete={removeVocabEntry}
+              onConfirmDelete={handleConfirmDeleteWord}
               speaking={speaking}
             />
           </section>
         )}
         {tab === 'flashcards' && (
           <FlashcardsView
-            key={studyLanguage}
+            key={`${studyLanguage}-${flashcardFilter?.textId ?? ''}-${flashcardFilter?.category ?? ''}`}
             vocabulary={state.vocabulary}
             flashcardLangLabel={langConfig.flashcardLangLabel}
             dueCount={flashcards.dueCount}
@@ -242,12 +409,13 @@ export default function App() {
             hasDeck={flashcards.hasDeck}
             speaking={speaking}
             onReveal={() => flashcards.setRevealed(true)}
-            onRate={(rating) => flashcards.rateCard(rating, rateCard)}
+            onRate={handleFlashcardRate}
             onSpeak={speakWord}
             onSaveTranslation={handleSaveWordTranslation}
             onRefetchTranslation={handleRefetchWordTranslation}
             onRestart={() => flashcards.rebuildQueue('due')}
             onStudyAll={() => flashcards.rebuildQueue('all')}
+            onCategoryClick={handleFlashcardCategoryClick}
           />
         )}
         {tab === 'settings' && (
@@ -271,6 +439,8 @@ export default function App() {
               setTranslationProvider(provider);
               setTranslationProviderState(provider);
             }}
+            theme={theme}
+            onThemeChange={setTheme}
             onImport={(json) => {
               try {
                 restoreFromBackup(json);
@@ -279,6 +449,7 @@ export default function App() {
                 alert('No se pudo importar el backup');
               }
             }}
+            onResetAll={handleResetAll}
           />
         )}
       </main>
@@ -291,5 +462,13 @@ export default function App() {
         savedTextsCount={state.savedTexts.length}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ConfirmProvider>
+      <AppContent />
+    </ConfirmProvider>
   );
 }
