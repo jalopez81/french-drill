@@ -1,13 +1,13 @@
 import type { VocabEntry } from '../types';
 import { clearAllCachedAudio, removeCachedAudio } from './audioCache';
-import { isManualTranslation, removeCachedTranslation, translateToSpanish } from './translate';
-import { mapWithConcurrency } from './requestQueue';
+import { isManualTranslation, removeCachedTranslation, translateBulk } from './translate';
 
 export interface RegenerateProgress {
   done: number;
   total: number;
   phase: 'translate' | 'audio';
   current?: string;
+  remaining?: number;
 }
 
 export interface RegenerateResult {
@@ -21,25 +21,29 @@ export interface RegenerateResult {
 export async function regenerateWordAssets(
   word: string,
   options?: { skipManual?: boolean; refreshAudio?: boolean },
-): Promise<string | null> {
+): Promise<{ translation: string | null }> {
   if (options?.skipManual !== false && isManualTranslation(word)) {
     if (options?.refreshAudio !== false) await removeCachedAudio(word);
-    return null;
+    return { translation: null };
   }
 
   removeCachedTranslation(word);
   if (options?.refreshAudio !== false) await removeCachedAudio(word);
 
   try {
-    return await translateToSpanish(word, { force: true });
+    const bulk = await translateBulk([word]);
+    return { translation: bulk.translations[word] ?? null };
   } catch {
-    return null;
+    return { translation: null };
   }
 }
 
 export async function regenerateVocabularyAssets(
   entries: VocabEntry[],
-  prefetchSpeech: (words: string[]) => Promise<number>,
+  prefetchSpeech: (
+    words: string[],
+    options?: { onProgress?: (progress: { done: number; total: number; remaining: number; current?: string }) => void },
+  ) => Promise<number>,
   options?: {
     skipManual?: boolean;
     prefetchAudio?: boolean;
@@ -48,44 +52,62 @@ export async function regenerateVocabularyAssets(
 ): Promise<RegenerateResult> {
   const skipManual = options?.skipManual ?? true;
   const words = entries.map((entry) => entry.word);
-  const translations: Record<string, string> = {};
-  let translated = 0;
+  const toRegenerate: string[] = [];
   let skippedManual = 0;
-  let failed = 0;
-  let done = 0;
 
-  await mapWithConcurrency(words, 1, async (word) => {
+  for (const word of words) {
     if (skipManual && isManualTranslation(word)) {
       skippedManual += 1;
       await removeCachedAudio(word);
     } else {
       removeCachedTranslation(word);
       await removeCachedAudio(word);
-
-      try {
-        const result = await translateToSpanish(word, { force: true });
-        translations[word] = result;
-        translated += 1;
-      } catch {
-        failed += 1;
-      }
+      toRegenerate.push(word);
     }
+  }
 
-    done += 1;
-    options?.onProgress?.({
-      done,
-      total: words.length,
-      phase: 'translate',
-      current: word,
-    });
+  options?.onProgress?.({
+    done: 0,
+    total: words.length,
+    phase: 'translate',
+  });
+
+  let translations: Record<string, string> = {};
+  let translated = 0;
+  let failed = 0;
+
+  if (toRegenerate.length > 0) {
+    try {
+      const bulk = await translateBulk(toRegenerate);
+      translations = bulk.translations;
+      translated = Object.keys(translations).length;
+      failed = toRegenerate.length - translated;
+    } catch {
+      failed = toRegenerate.length;
+    }
+  }
+
+  options?.onProgress?.({
+    done: words.length,
+    total: words.length,
+    phase: 'translate',
   });
 
   let audioCount = 0;
 
   if (options?.prefetchAudio !== false) {
-    options?.onProgress?.({ done: 0, total: words.length, phase: 'audio' });
     await clearAllCachedAudio();
-    audioCount = await prefetchSpeech(words);
+    audioCount = await prefetchSpeech(words, {
+      onProgress: (audio) => {
+        options?.onProgress?.({
+          done: audio.done,
+          total: audio.total,
+          phase: 'audio',
+          current: audio.current,
+          remaining: audio.remaining,
+        });
+      },
+    });
   }
 
   return { translations, translated, skippedManual, audioCount, failed };

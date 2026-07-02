@@ -1,21 +1,19 @@
 import type { StudyLanguage } from '../config/languages';
-import { LINGVA_INSTANCES } from './lingva';
-import { LANGUAGES, TARGET_LANG } from '../config/languages';
-import { lingvaFetch } from './lingvaClient';
-import { sleep } from './requestQueue';
-
-export type TranslationProvider = 'lingva' | 'google';
+import { translateWithGemini } from './geminiTranslate';
 
 type TranslationCache = Record<string, string>;
 
-const PROVIDER_STORAGE_KEY = 'french-drill-translation-provider';
+export interface BulkTranslationResult {
+  translations: Record<string, string>;
+}
+
+export interface TranslateBulkOptions {
+  lessonSentences?: string[];
+}
 
 const memoryCaches: Record<StudyLanguage, TranslationCache> = { fr: {}, en: {} };
 const manualCaches: Record<StudyLanguage, TranslationCache> = { fr: {}, en: {} };
 let activeLang: StudyLanguage = 'fr';
-let activeProvider: TranslationProvider = 'google';
-
-const inflightTranslations = new Map<string, Promise<string>>();
 
 function cacheStorageKey(lang: StudyLanguage): string {
   return `french-drill-translations-${lang}`;
@@ -23,34 +21,6 @@ function cacheStorageKey(lang: StudyLanguage): string {
 
 function manualStorageKey(lang: StudyLanguage): string {
   return `french-drill-manual-translations-${lang}`;
-}
-
-export function loadTranslationProvider(): TranslationProvider {
-  try {
-    const saved = localStorage.getItem(PROVIDER_STORAGE_KEY);
-    if (saved === 'lingva') return 'lingva';
-    return 'google';
-  } catch {
-    return 'google';
-  }
-}
-
-export function getTranslationProvider(): TranslationProvider {
-  return activeProvider;
-}
-
-export function setTranslationProvider(provider: TranslationProvider): void {
-  activeProvider = provider;
-  try {
-    localStorage.setItem(PROVIDER_STORAGE_KEY, provider);
-  } catch {
-    // no-op
-  }
-}
-
-export function initTranslationProvider(): TranslationProvider {
-  activeProvider = loadTranslationProvider();
-  return activeProvider;
 }
 
 function readCache(lang: StudyLanguage): TranslationCache {
@@ -100,6 +70,7 @@ export function clearAllTranslationData(): void {
     localStorage.removeItem(manualStorageKey(lang));
   }
   localStorage.removeItem('french-drill-translations');
+  localStorage.removeItem('french-drill-translation-provider');
 }
 
 export function isManualTranslation(text: string): boolean {
@@ -144,186 +115,54 @@ export function removeCachedTranslation(text: string): void {
   writeCache(activeLang);
 }
 
-async function fetchLingvaTranslation(text: string, sourceLang: StudyLanguage): Promise<string> {
-  const sourceCode = LANGUAGES[sourceLang].lingvaCode;
-  let lastError: unknown;
-
-  for (const instance of LINGVA_INSTANCES) {
-    try {
-      const url = `${instance}/api/v1/${sourceCode}/${TARGET_LANG}/${encodeURIComponent(text)}`;
-      const response = await lingvaFetch(url);
-
-      const data = (await response.json()) as {
-        translation?: string;
-        error?: string;
-      };
-
-      const translated = data.translation?.trim() ?? '';
-      if (!translated) {
-        throw new Error(data.error ?? 'Traducción vacía');
-      }
-
-      return translated;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error('No se pudo traducir');
-}
-
-async function fetchGoogleTranslation(text: string, sourceLang: StudyLanguage): Promise<string> {
-  const sourceCode = LANGUAGES[sourceLang].lingvaCode;
-  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceCode}&tl=${TARGET_LANG}&dt=t&q=${encodeURIComponent(text)}`;
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const data = (await response.json()) as unknown;
-  if (!Array.isArray(data) || !Array.isArray(data[0])) {
-    throw new Error('Formato inesperado de Google Translate');
-  }
-
-  const translated = (data[0] as Array<[string]>)
-    .map((part) => part[0] ?? '')
-    .join('')
-    .trim();
-
-  if (!translated) {
-    throw new Error('Traducción vacía');
-  }
-
-  return translated;
-}
-
-async function fetchTranslation(text: string, sourceLang: StudyLanguage): Promise<string> {
-  if (activeProvider === 'google') {
-    try {
-      return await fetchGoogleTranslation(text, sourceLang);
-    } catch {
-      return fetchLingvaTranslation(text, sourceLang);
-    }
-  }
-
-  return fetchLingvaTranslation(text, sourceLang);
-}
-
 export async function translateToSpanish(text: string, options?: { force?: boolean }): Promise<string> {
   const key = text.trim();
   if (!key) return '';
 
-  if (!options?.force) {
-    const cached = getCachedTranslation(key);
-    if (cached) return cached;
-
-    const pending = inflightTranslations.get(key);
-    if (pending) return pending;
-  }
-
-  const promise = (async () => {
-    const translated = await fetchTranslation(key, activeLang);
-    cacheTranslation(key, translated);
-    return translated;
-  })();
+  const cached = getCachedTranslation(key);
+  if (cached && !options?.force) return cached;
 
   if (!options?.force) {
-    inflightTranslations.set(key, promise);
-    promise.finally(() => inflightTranslations.delete(key));
+    throw new Error('Traduce la lección con el botón Traducir o Guardar');
   }
 
-  return promise;
+  const bulk = await translateBulk([key]);
+  const translated = bulk.translations[key];
+  if (!translated) throw new Error('Gemini no devolvió traducción para este texto');
+  return translated;
 }
 
-async function translateIndividually(items: string[]): Promise<Record<string, string>> {
-  const result: Record<string, string> = {};
-
-  for (const item of items) {
-    try {
-      result[item] = await translateToSpanish(item);
-    } catch {
-      // omit failed item; caller may retry later
-    }
-  }
-
-  return result;
-}
-
-const BULK_CHUNK_SIZE = 12;
-
-async function translateInChunks(items: string[]): Promise<Record<string, string>> {
-  const result: Record<string, string> = {};
-
-  for (let i = 0; i < items.length; i += BULK_CHUNK_SIZE) {
-    const chunk = items.slice(i, i + BULK_CHUNK_SIZE);
-
-    if (chunk.length === 1) {
-      try {
-        result[chunk[0]] = await translateToSpanish(chunk[0]);
-      } catch {
-        // skip
-      }
-      continue;
-    }
-
-    try {
-      const payload = chunk.join('\n');
-      const translatedPayload = await fetchLingvaTranslation(payload, activeLang);
-      const parts = translatedPayload.split('\n');
-
-      if (parts.length === chunk.length) {
-        chunk.forEach((key, index) => {
-          const translation = parts[index].trim();
-          cacheTranslation(key, translation);
-          result[key] = translation;
-        });
-        continue;
-      }
-    } catch {
-      // fallback below
-    }
-
-    const fallback = await translateIndividually(chunk);
-    Object.assign(result, fallback);
-
-    if (i + BULK_CHUNK_SIZE < items.length) {
-      await sleep(1000);
-    }
-  }
-
-  return result;
-}
-
-export async function translateBulk(items: string[]): Promise<Record<string, string>> {
+export async function translateBulk(
+  items: string[],
+  options: TranslateBulkOptions = {},
+): Promise<BulkTranslationResult> {
   const keys = [...new Set(items.map((item) => item.trim()).filter(Boolean))];
   const result: Record<string, string> = {};
+  const missing: string[] = [];
 
   for (const key of keys) {
     const cached = getCachedTranslation(key);
-    if (cached) result[key] = cached;
-  }
-
-  const missing = keys.filter((key) => !result[key]);
-  if (missing.length === 0) return result;
-
-  if (missing.length === 1) {
-    const translation = await translateToSpanish(missing[0]);
-    result[missing[0]] = translation;
-    return result;
-  }
-
-  if (activeProvider === 'lingva') {
-    try {
-      const chunked = await translateInChunks(missing);
-      return { ...result, ...chunked };
-    } catch {
-      // fallback below
+    if (cached) {
+      result[key] = cached;
+    } else if (!isManualTranslation(key)) {
+      missing.push(key);
     }
   }
 
-  const fallback = await translateIndividually(missing);
-  return { ...result, ...fallback };
+  if (missing.length === 0) return { translations: result };
+
+  const fromGemini = await translateWithGemini(missing, activeLang, {
+    lessonSentences: options.lessonSentences,
+  });
+
+  for (const key of missing) {
+    const translation = fromGemini.translations[key]?.trim();
+    if (!translation) continue;
+    cacheTranslation(key, translation);
+    result[key] = translation;
+  }
+
+  return { translations: result };
 }
 
 export function migrateLegacyTranslationCache(): void {

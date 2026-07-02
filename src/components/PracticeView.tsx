@@ -19,11 +19,18 @@ import type { SpeechMode } from '../hooks/useSpeech';
 import type { SpeechSpeed } from '../utils/speechSpeed';
 import { usePracticeKeyboard } from '../hooks/usePracticeKeyboard';
 import { ProgressBar } from './ProgressBar';
+import type { AudioPrefetchProgress } from '../utils/audioCache';
+
+import type { MemoryCapsule } from '../utils/lessonCapsules';
 
 interface PracticeViewProps {
   studyLanguage: StudyLanguage;
   vocabulary: VocabEntry[];
-  onSave: (content: string, title?: string) => void;
+  onSave: (
+    content: string,
+    title?: string,
+    memory?: { sentences?: string[]; capsules?: MemoryCapsule[] },
+  ) => void;
   onSpeak: (text: string, options?: SpeakOptions) => Promise<void>;
   onStop: () => void;
   speaking: boolean;
@@ -38,7 +45,11 @@ interface PracticeViewProps {
   onPracticeSaved?: (id: string) => void;
   onNotice?: (message: string) => void;
   onUpdateVocabTranslation?: (word: string, translation: string) => void;
-  prefetchSpeech: (texts: string[]) => Promise<number>;
+  onSyncLessonMemory?: (sourceTextId: string, sentences: string[], capsules: MemoryCapsule[]) => void;
+  prefetchSpeech: (
+    texts: string[],
+    options?: { onProgress?: (progress: AudioPrefetchProgress) => void },
+  ) => Promise<number>;
   speechSpeed: SpeechSpeed;
   onSpeechSpeedChange: (speed: SpeechSpeed) => void;
 }
@@ -69,6 +80,7 @@ export function PracticeView({
   onPracticeSaved,
   onNotice,
   onUpdateVocabTranslation,
+  onSyncLessonMemory,
   prefetchSpeech,
   speechSpeed,
   onSpeechSpeedChange,
@@ -103,7 +115,24 @@ export function PracticeView({
     isTranslatingAll,
     isTextFullyTranslated,
     syncFromCache,
-  } = useTranslation();
+  } = useTranslation(studyLanguage);
+
+  const pendingMemoryRef = useRef<{ sentences: string[]; capsules: MemoryCapsule[] } | null>(null);
+  const [audioPrefetch, setAudioPrefetch] = useState<AudioPrefetchProgress | null>(null);
+
+  const prefetchLessonAudio = useCallback(
+    async (items: string[]) => {
+      setAudioPrefetch(null);
+      try {
+        return await prefetchSpeech(items, {
+          onProgress: (progress) => setAudioPrefetch(progress),
+        });
+      } finally {
+        setAudioPrefetch(null);
+      }
+    },
+    [prefetchSpeech],
+  );
 
   useEffect(() => {
     if (!loadedText) return;
@@ -124,15 +153,27 @@ export function PracticeView({
   const hasSentences = sentences.length > 0;
   const hasText = text.trim().length > 0;
 
+  const applyMemoryFromResult = (capsules: MemoryCapsule[], lessonSentences: string[]) => {
+    if (activeLoadedId) {
+      onSyncLessonMemory?.(activeLoadedId, lessonSentences, capsules);
+      return;
+    }
+    pendingMemoryRef.current = { sentences: lessonSentences, capsules };
+  };
+
   const handleTranslateAll = async () => {
     const items = speechItems(text);
     const result = await translateAllText(text);
-    const audioCount = await prefetchSpeech(items);
+    const audioCount = await prefetchLessonAudio(items);
 
     if (result.ok) {
+      applyMemoryFromResult(result.memoryCapsules, sentences);
+      const parts: string[] = [`${result.count} ítems`];
+      if (result.memoryCapsules.length > 0) parts.push(`${result.memoryCapsules.length} cápsulas`);
+      parts.push(`${sentences.length} oraciones`);
       const audioNote =
         audioCount > 0 ? `${audioCount} audios en caché` : 'pronunciación con voz del dispositivo';
-      onNotice?.(`Traducciones listas (${result.count} ítems, ${audioNote})`);
+      onNotice?.(`Traducciones listas (${parts.join(' · ')}, ${audioNote})`);
       return;
     }
 
@@ -145,9 +186,18 @@ export function PracticeView({
     setSaving(true);
     try {
       const items = speechItems(text);
-      await translateAllText(text);
-      const audioCount = await prefetchSpeech(items);
-      onSave(text, title.trim() || undefined);
+      const translationResult = await translateAllText(text);
+      const pending = pendingMemoryRef.current;
+      pendingMemoryRef.current = null;
+      const capsules =
+        translationResult.memoryCapsules.length > 0
+          ? translationResult.memoryCapsules
+          : (pending?.capsules ?? []);
+      const audioCount = await prefetchLessonAudio(items);
+      onSave(text, title.trim() || undefined, {
+        sentences,
+        capsules,
+      });
       setTitle('');
       const audioNote =
         audioCount > 0 ? `${audioCount} audios en caché` : 'voz del dispositivo';
@@ -339,10 +389,15 @@ export function PracticeView({
     canSave: hasText,
   };
 
-  const showPracticeProgress = isTranslatingAll || saving;
-  const practiceProgressLabel = saving
-    ? 'Guardando lección y preparando audios…'
-    : 'Traduciendo lección…';
+  const prefetchingAudio = audioPrefetch !== null && audioPrefetch.remaining > 0;
+  const showPracticeProgress = isTranslatingAll || saving || prefetchingAudio;
+  const practiceProgressLabel = isTranslatingAll
+    ? 'Traduciendo lección…'
+    : prefetchingAudio
+      ? `Preparando audios… faltan ${audioPrefetch.remaining}`
+      : saving
+        ? 'Guardando lección…'
+        : 'Preparando…';
 
   useEffect(() => {
     if (!hasSentences) {
@@ -360,6 +415,11 @@ export function PracticeView({
       drillHighlight.tokenIndex,
     );
   }, [drillHighlight]);
+
+  useEffect(() => {
+    if (speakingSentenceIndex === null) return;
+    sentenceListRef.current?.scrollToSentence(speakingSentenceIndex);
+  }, [speakingSentenceIndex]);
 
   useEffect(() => {
     if (selectedIndex === null || focusMode) return;
@@ -450,7 +510,10 @@ export function PracticeView({
             <>
               {showPracticeProgress && (
                 <ProgressBar
-                  indeterminate
+                  indeterminate={isTranslatingAll || !prefetchingAudio}
+                  value={audioPrefetch?.done}
+                  max={audioPrefetch?.total}
+                  showPercent={prefetchingAudio}
                   label={practiceProgressLabel}
                   size="sm"
                   className="practice-progress practice-progress--sticky"

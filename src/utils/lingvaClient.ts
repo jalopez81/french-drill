@@ -12,7 +12,12 @@ function retryDelayMs(response: Response | null, attempt: number): number {
     const seconds = Number.parseInt(retryAfter, 10);
     if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000;
   }
-  return Math.min(1500 * 2 ** attempt, 12000);
+  
+  // Base: 2000ms, Exponente: 2, Techo: 20000ms
+  // Esto aumenta el tiempo de espera mucho más rápido tras cada fallo
+  const baseDelay = 2000;
+  const jitter = Math.random() * 1000;
+  return Math.min(baseDelay * Math.pow(2, attempt), 20000) + jitter;
 }
 
 async function fetchWithRetry(url: string): Promise<Response> {

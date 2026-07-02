@@ -13,8 +13,11 @@ import {
   touchSavedText,
   updateSavedTextTitle,
   updateVocabTranslation,
+  syncLessonMemoryItems,
 } from '../utils/storage';
 import { persistTranslationCache } from '../utils/translate';
+import { applyFullBackup, type FullAppBackup } from '../utils/fullBackup';
+import type { MemoryCapsule } from '../utils/lessonCapsules';
 
 export function useAppState(studyLanguage: StudyLanguage) {
   const [state, setState] = useState<AppState>(() => loadState(studyLanguage));
@@ -38,9 +41,24 @@ export function useAppState(studyLanguage: StudyLanguage) {
     [],
   );
 
-  const saveCurrentText = useCallback((content: string, title?: string) => {
-    setState((prev) => saveText(prev, content, title).state);
-  }, []);
+  const saveCurrentText = useCallback(
+    (
+      content: string,
+      title?: string,
+      memory?: { sentences?: string[]; capsules?: MemoryCapsule[] },
+    ) => {
+      setState((prev) => {
+        const { state, saved } = saveText(prev, content, title);
+        return syncLessonMemoryItems(
+          state,
+          saved.id,
+          memory?.sentences ?? saved.sentences,
+          memory?.capsules ?? [],
+        );
+      });
+    },
+    [],
+  );
 
   const removeSavedText = useCallback((id: string) => {
     setState((prev) => deleteSavedText(prev, id));
@@ -75,9 +93,25 @@ export function useAppState(studyLanguage: StudyLanguage) {
     }));
   }, []);
 
+  const syncLessonMemory = useCallback(
+    (sourceTextId: string, sentences: string[], capsules: MemoryCapsule[]) => {
+      setState((prev) => syncLessonMemoryItems(prev, sourceTextId, sentences, capsules));
+    },
+    [],
+  );
+
   const restoreFromBackup = useCallback((json: string) => {
     const restored = importState(json);
     setState(restored);
+  }, []);
+
+  const restoreFullBackup = useCallback((backup: FullAppBackup) => {
+    applyFullBackup(backup);
+    setState(loadState(langRef.current));
+  }, []);
+
+  const reloadFromStorage = useCallback(() => {
+    setState(loadState(langRef.current));
   }, []);
 
   const resetAll = useCallback(() => {
@@ -93,10 +127,13 @@ export function useAppState(studyLanguage: StudyLanguage) {
     removeVocabEntry,
     updateVocabTranslationForWord,
     bulkUpdateVocabTranslations,
+    syncLessonMemory,
     markTextPracticed,
     renameSavedText,
     rateCard,
     restoreFromBackup,
+    restoreFullBackup,
+    reloadFromStorage,
     resetAll,
   };
 }

@@ -2,12 +2,14 @@ import { useMemo, useState } from 'react';
 import type { VocabCategoryFilter, VocabEntry } from '../types';
 import type { FlashcardCategory } from '../types';
 import { getFlashcardCategory, summarizeFlashcardDeck } from '../utils/spacedRepetition';
-import { normalizeWord, uniqueWords } from '../utils/wordExtractor';
+import { normalizeWord, uniqueWords, countPhraseWords } from '../utils/wordExtractor';
+import { getVocabKind, vocabKindChipClass, vocabKindLabel } from '../utils/vocabKind';
 import type { SavedText } from '../types';
 import { FLASHCARD_CATEGORIES } from '../constants/flashcardCategories';
 import { WordCategorySummary } from './WordCategorySummary';
+import { VocabKindPeek } from './VocabKindPeek';
 import type { RegenerateProgress } from '../utils/regenerateVocabulary';
-import { CategoryProgressBar, ProgressBar } from './ProgressBar';
+import { ProgressBar } from './ProgressBar';
 
 interface VocabularyListProps {
   entries: VocabEntry[];
@@ -36,17 +38,17 @@ const CATEGORY_ORDER: Record<FlashcardCategory, number> = {
   easy: 4,
 };
 
+const MAX_VOCAB_WORDS = 4;
+
+function isVocabPhrase(entry: VocabEntry): boolean {
+  return countPhraseWords(entry.word) >= 2;
+}
+
 function formatDate(ts: number): string {
   return new Intl.DateTimeFormat('es', {
     day: 'numeric',
     month: 'short',
   }).format(new Date(ts));
-}
-
-function categoryMeta(entry: VocabEntry) {
-  const id = getFlashcardCategory(entry);
-  const meta = FLASHCARD_CATEGORIES.find((item) => item.id === id);
-  return { id, label: meta?.label ?? id, className: meta?.className ?? '' };
 }
 
 export function VocabularyList({
@@ -70,21 +72,36 @@ export function VocabularyList({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTranslation, setDraftTranslation] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [showTranslations, setShowTranslations] = useState(false);
 
-  const summary = useMemo(() => summarizeFlashcardDeck(entries), [entries]);
-  const withoutTranslation = useMemo(
-    () => entries.filter((entry) => !entry.translation).length,
+  const vocabularyItems = useMemo(
+    () =>
+      entries.filter((entry) => {
+        const kind = getVocabKind(entry);
+        if (kind === 'capsule' || kind === 'sentence') return false;
+        return countPhraseWords(entry.word) <= MAX_VOCAB_WORDS;
+      }),
     [entries],
   );
 
+  const summary = useMemo(() => summarizeFlashcardDeck(vocabularyItems), [vocabularyItems]);
+  const withoutTranslation = useMemo(
+    () => vocabularyItems.filter((entry) => !entry.translation).length,
+    [vocabularyItems],
+  );
+
   const filteredEntries = useMemo(() => {
-    let result = entries;
+    let result = vocabularyItems;
 
     if (categoryFilter?.textId) {
       const text = savedTexts.find((item) => item.id === categoryFilter.textId);
       if (text) {
         const words = new Set(uniqueWords(text.content).map(normalizeWord));
-        result = result.filter((entry) => words.has(entry.normalized));
+        result = result.filter(
+          (entry) =>
+            entry.sourceTextId === categoryFilter.textId ||
+            ((!entry.kind || entry.kind === 'word') && words.has(entry.normalized)),
+        );
       } else {
         result = [];
       }
@@ -114,7 +131,7 @@ export function VocabularyList({
       }
       return b.addedAt - a.addedAt;
     });
-  }, [categoryFilter, entries, query, savedTexts, sortMode]);
+  }, [categoryFilter, vocabularyItems, query, savedTexts, sortMode]);
 
   const filterLabel = useMemo(() => {
     if (!categoryFilter?.category) return null;
@@ -133,16 +150,20 @@ export function VocabularyList({
 
   const progressLabel = useMemo(() => {
     if (!regenerateProgress) return null;
-    if (regenerateProgress.phase === 'audio') return 'Regenerando audios…';
+    if (regenerateProgress.phase === 'audio') {
+      return regenerateProgress.remaining !== undefined
+        ? `Preparando audios… faltan ${regenerateProgress.remaining}`
+        : 'Preparando audios…';
+    }
     const current = regenerateProgress.current ? ` · ${regenerateProgress.current}` : '';
     return `Traduciendo ${regenerateProgress.done}/${regenerateProgress.total}${current}`;
   }, [regenerateProgress]);
 
   return (
     <div className="vocab-list-view">
-      <div className="vocab-summary">
+      <div className="vocab-summary vocab-list-view__chrome">
         <div className="vocab-summary__row">
-          <span className="vocab-summary__count">{entries.length} palabras</span>
+          <span className="vocab-summary__count">{vocabularyItems.length} términos</span>
           {withoutTranslation > 0 && (
             <span className="vocab-summary__warn">{withoutTranslation} sin traducción</span>
           )}
@@ -154,13 +175,11 @@ export function VocabularyList({
             onCategoryFilter(categoryFilter?.category === category ? null : category)
           }
         />
-        {entries.length > 0 && (
-          <CategoryProgressBar summary={summary} className="vocab-summary__progress" />
-        )}
+        <VocabKindPeek vocabulary={entries} />
       </div>
 
       {filterLabel && (
-        <div className="vocab-filter-banner">
+        <div className="vocab-filter-banner vocab-list-view__chrome">
           <span>Filtro: {filterLabel}</span>
           <button type="button" className="btn btn--ghost btn--sm" onClick={onClearCategoryFilter}>
             Quitar
@@ -168,8 +187,8 @@ export function VocabularyList({
         </div>
       )}
 
-      <div className="vocab-toolbar">
-        <label className="vocab-search">
+      <div className="vocab-toolbar vocab-list-view__chrome">
+        <label className="vocab-search vocab-toolbar__search">
           <span className="sr-only">Buscar en vocabulario</span>
           <input
             type="search"
@@ -179,45 +198,62 @@ export function VocabularyList({
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
-        <select
-          className="select vocab-toolbar__sort"
-          value={sortMode}
-          onChange={(e) => setSortMode(e.target.value as SortMode)}
-          aria-label="Ordenar vocabulario"
-        >
-          <option value="recent">Recientes</option>
-          <option value="alpha">A–Z</option>
-          <option value="category">Por estado</option>
-        </select>
-        <button
-          type="button"
-          className="btn btn--secondary btn--sm vocab-toolbar__regen"
-          onClick={onRegenerateAll}
-          disabled={regenerating || entries.length === 0}
-          title="Regenerar traducciones y audios (conserva manuales)"
-        >
-          {regenerating ? '…' : '↻'}
-          <span className="vocab-toolbar__regen-text"> Regenerar</span>
-        </button>
+        <div className="vocab-toolbar__controls">
+          <button
+            type="button"
+            className={`vocab-toolbar__toggle${showTranslations ? ' vocab-toolbar__toggle--active' : ''}`}
+            onClick={() => setShowTranslations((visible) => !visible)}
+            aria-pressed={showTranslations}
+            aria-label={showTranslations ? 'Ocultar traducciones' : 'Ver traducciones'}
+          >
+            {showTranslations ? 'Ocultar traducciones' : 'Ver traducciones'}
+          </button>
+          <select
+            className="select vocab-toolbar__sort"
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value as SortMode)}
+            aria-label="Ordenar vocabulario"
+          >
+            <option value="recent">Recientes</option>
+            <option value="alpha">A–Z</option>
+            <option value="category">Por estado</option>
+          </select>
+          <button
+            type="button"
+            className="btn btn--secondary vocab-toolbar__regen"
+            onClick={onRegenerateAll}
+            disabled={regenerating || vocabularyItems.length === 0}
+            title="Regenerar traducciones y audios (conserva manuales)"
+          >
+            {regenerating ? 'Regenerando…' : 'Regenerar'}
+          </button>
+        </div>
       </div>
 
       {regenerating && progressLabel && (
-        <div className="vocab-regen-progress" aria-live="polite">
+        <div className="vocab-regen-progress vocab-list-view__chrome" aria-live="polite">
           <ProgressBar
-            value={regenerateProgress?.phase === 'translate' ? regenerateProgress.done : undefined}
+            value={regenerateProgress?.done}
             max={regenerateProgress?.total ?? 1}
-            indeterminate={regenerateProgress?.phase === 'audio'}
+            indeterminate={
+              regenerateProgress?.phase === 'audio' &&
+              (regenerateProgress.remaining === undefined || regenerateProgress.remaining <= 0)
+            }
             label={progressLabel}
-            showPercent={regenerateProgress?.phase === 'translate'}
+            showPercent={Boolean(regenerateProgress && regenerateProgress.total > 0)}
             size="sm"
           />
         </div>
       )}
 
       <div className="vocab-list-body">
-        {entries.length === 0 ? (
+        {vocabularyItems.length === 0 ? (
           <div className="empty-state">
-            <p>El vocabulario se llena al guardar lecciones nuevas.</p>
+            <p>
+              {entries.length === 0
+                ? 'El vocabulario se llena al guardar lecciones nuevas.'
+                : 'No hay palabras ni frases cortas aquí. Cápsulas y oraciones están en Memoria.'}
+            </p>
           </div>
         ) : filteredEntries.length === 0 ? (
           <div className="empty-state empty-state--compact">
@@ -228,27 +264,47 @@ export function VocabularyList({
             {filteredEntries.map((entry) => {
               const isEditing = editingId === entry.id;
               const isBusy = busyId === entry.id;
-              const category = categoryMeta(entry);
+              const kind = getVocabKind(entry);
+              const isPhrase = isVocabPhrase(entry);
               const canSave =
                 draftTranslation.trim().length > 0 &&
                 draftTranslation.trim() !== (entry.translation ?? '').trim();
 
               return (
-                <li key={entry.id} className="vocab-card">
+                <li key={entry.id} className={`vocab-card${isPhrase ? ' vocab-card--phrase' : ''}`}>
+                  <span className="vocab-card__date">{formatDate(entry.addedAt)}</span>
                   {isEditing ? (
-                    <>
-                      <div className="vocab-card__row vocab-card__row--edit">
-                        <span className="vocab-card__word">{entry.word}</span>
-                        <input
-                          type="text"
-                          className="vocab-card__edit-input"
-                          value={draftTranslation}
-                          onChange={(e) => setDraftTranslation(e.target.value)}
-                          disabled={isBusy}
-                          placeholder="Traducción…"
-                          autoFocus
-                        />
-                      </div>
+                    <div className={`vocab-card__main${isPhrase ? ' vocab-card__main--phrase' : ''}`}>
+                      <span className={vocabKindChipClass(kind)} aria-hidden>
+                        {vocabKindLabel(kind)}
+                      </span>
+                      {isPhrase ? (
+                        <div className="vocab-card__phrase">
+                          <span className="vocab-card__phrase-line">{entry.word}</span>
+                          <input
+                            type="text"
+                            className="vocab-card__phrase-edit"
+                            value={draftTranslation}
+                            onChange={(e) => setDraftTranslation(e.target.value)}
+                            disabled={isBusy}
+                            placeholder="Traducción…"
+                            autoFocus
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <span className="vocab-card__word">{entry.word}</span>
+                          <input
+                            type="text"
+                            className="vocab-card__edit-input"
+                            value={draftTranslation}
+                            onChange={(e) => setDraftTranslation(e.target.value)}
+                            disabled={isBusy}
+                            placeholder="Traducción…"
+                            autoFocus
+                          />
+                        </>
+                      )}
                       <div className="vocab-card__actions">
                         <button
                           type="button"
@@ -261,29 +317,58 @@ export function VocabularyList({
                         >
                           Guardar
                         </button>
-                        <button type="button" className="btn btn--ghost vocab-card__action" onClick={cancelEditing}>
+                        <button
+                          type="button"
+                          className="btn btn--ghost vocab-card__action"
+                          onClick={cancelEditing}
+                        >
                           Cancelar
                         </button>
                       </div>
-                    </>
+                    </div>
                   ) : (
-                    <>
-                      <div className="vocab-card__row">
-                        <span className="vocab-card__word">{entry.word}</span>
-                        <span className="vocab-card__sep" aria-hidden>
-                          ·
-                        </span>
-                        <span
-                          className={`vocab-card__translation${entry.translation ? '' : ' vocab-card__translation--missing'}`}
-                        >
-                          {entry.translation ?? 'Sin traducción'}
-                        </span>
-                        <span className={`vocab-card__category ${category.className}`}>
-                          {category.label}
-                        </span>
-                        <span className="vocab-card__date">{formatDate(entry.addedAt)}</span>
-                      </div>
+                    <div className={`vocab-card__main${isPhrase ? ' vocab-card__main--phrase' : ''}`}>
+                      <span className={vocabKindChipClass(kind)} aria-hidden>
+                        {vocabKindLabel(kind)}
+                      </span>
+                      {isPhrase ? (
+                        <div className="vocab-card__phrase">
+                          <span className="vocab-card__phrase-line">{entry.word}</span>
+                          {showTranslations ? (
+                            <span
+                              className={`vocab-card__phrase-line vocab-card__phrase-line--translation${entry.translation ? '' : ' vocab-card__phrase-line--missing'}`}
+                            >
+                              {entry.translation ?? 'Sin traducción'}
+                            </span>
+                          ) : (
+                            <span className="vocab-card__phrase-line vocab-card__phrase-line--hidden" aria-hidden />
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <span className="vocab-card__word">{entry.word}</span>
+                          {showTranslations ? (
+                            <span
+                              className={`vocab-card__translation${entry.translation ? '' : ' vocab-card__translation--missing'}`}
+                            >
+                              {entry.translation ?? 'Sin traducción'}
+                            </span>
+                          ) : (
+                            <span className="vocab-card__translation vocab-card__translation--hidden" aria-hidden />
+                          )}
+                        </>
+                      )}
                       <div className="vocab-card__actions">
+                        <button
+                          type="button"
+                          className="btn btn--secondary vocab-card__action"
+                          onClick={() => onSpeak(entry.word)}
+                          disabled={speaking}
+                          aria-label={`Pronunciar ${entry.word}`}
+                          title="Pronunciar"
+                        >
+                          ▶
+                        </button>
                         <button
                           type="button"
                           className="btn btn--ghost vocab-card__action"
@@ -302,17 +387,9 @@ export function VocabularyList({
                             void onRegenerateWord(entry.word).finally(() => setBusyId(null));
                           }}
                           aria-label={`Regenerar ${entry.word}`}
+                          title="Regenerar traducción"
                         >
                           {isBusy ? '…' : '↻'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn--secondary vocab-card__action"
-                          onClick={() => onSpeak(entry.word)}
-                          disabled={speaking}
-                          aria-label={`Pronunciar ${entry.word}`}
-                        >
-                          ▶
                         </button>
                         <button
                           type="button"
@@ -322,11 +399,12 @@ export function VocabularyList({
                             if (confirmed) onDelete(entry.id);
                           }}
                           aria-label={`Borrar ${entry.word}`}
+                          title="Eliminar"
                         >
                           ✕
                         </button>
                       </div>
-                    </>
+                    </div>
                   )}
                 </li>
               );

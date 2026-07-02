@@ -5,6 +5,7 @@ import {
   getFlashcardCategory,
   isDue,
   summarizeFlashcardDeck,
+  shuffleDeck,
   updateSrs,
 } from './spacedRepetition';
 import type { VocabEntry } from '../types';
@@ -61,5 +62,16 @@ describe('spacedRepetition', () => {
     const summary = summarizeFlashcardDeck([due, mastered], NOW);
     expect(summary.again).toBe(1);
     expect(summary.easy).toBe(1);
+  });
+
+  it('shuffles deck order without dropping items', () => {
+    const deck = [
+      entry({ id: 'a', word: 'un' }),
+      entry({ id: 'b', word: 'deux' }),
+      entry({ id: 'c', word: 'trois' }),
+    ];
+    const shuffled = shuffleDeck(deck);
+    expect(shuffled).toHaveLength(3);
+    expect(new Set(shuffled.map((item) => item.id))).toEqual(new Set(['a', 'b', 'c']));
   });
 });

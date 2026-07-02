@@ -1,16 +1,30 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { StudyLanguage } from '../config/languages';
 import { LANGUAGES } from '../config/languages';
 import type { AppState } from '../types';
 import type { VoiceGender } from '../utils/studyVoice';
 import { formatVoiceLabel, voiceKey } from '../utils/studyVoice';
-import type { TranslationProvider } from '../utils/translate';
 import { exportState } from '../utils/storage';
-import { exportVocabularyCsv, exportVocabularyJson, downloadTextFile } from '../utils/exportVocabulary';
 import type { Theme } from '../hooks/useTheme';
 import { VoiceGenderControl } from './VoiceGenderControl';
 import { LanguageFlag } from './LanguageFlag';
 import { useConfirm } from '../hooks/useConfirm';
+import { useStorage } from '../hooks/useStorage';
+import { isJsonBinConfigured } from '../utils/jsonbinClient';
+import {
+  addLocalProfile,
+  getActiveProfile,
+  getLocalProfiles,
+  removeLocalProfile,
+  setActiveProfile,
+} from '../utils/cloudProfiles';
+import {
+  buildFullBackup,
+  mergeUserBackup,
+  type CloudBinRoot,
+  type FullAppBackup,
+} from '../utils/fullBackup';
+import { ProfilePickerDialog } from './ProfilePickerDialog';
 
 interface SettingsViewProps {
   studyLanguage: StudyLanguage;
@@ -28,11 +42,11 @@ interface SettingsViewProps {
   usesOnlineAudio: boolean;
   canUseNativeSpeech: boolean;
   systemVoiceCount: number;
-  translationProvider: TranslationProvider;
-  onTranslationProviderChange: (provider: TranslationProvider) => void;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
   onResetAll: () => void | Promise<void>;
+  onFullRestore: (backup: FullAppBackup) => void | Promise<void>;
+  onActiveProfileChange?: () => void;
 }
 
 export function SettingsView({
@@ -51,15 +65,41 @@ export function SettingsView({
   usesOnlineAudio,
   canUseNativeSpeech,
   systemVoiceCount,
-  translationProvider,
-  onTranslationProviderChange,
   theme,
   onThemeChange,
   onResetAll,
+  onFullRestore,
+  onActiveProfileChange,
 }: SettingsViewProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const { confirm } = useConfirm();
   const langConfig = LANGUAGES[studyLanguage];
+  const cloudConfigured = isJsonBinConfigured();
+  const {
+    data: cloudData,
+    loading: cloudLoading,
+    error: cloudError,
+    fetchState: fetchCloudState,
+    updateData: updateCloudData,
+    flushUpdate: flushCloudUpdate,
+  } = useStorage<CloudBinRoot>();
+
+  const [localProfiles, setLocalProfiles] = useState(() => getLocalProfiles());
+  const [activeProfile, setActiveProfileState] = useState(() => getActiveProfile());
+  const [profilePickerMode, setProfilePickerMode] = useState<'upload' | 'download' | null>(null);
+  const [cloudProfilesForPicker, setCloudProfilesForPicker] = useState<string[]>([]);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  const refreshProfiles = () => {
+    setLocalProfiles(getLocalProfiles());
+    setActiveProfileState(getActiveProfile());
+    onActiveProfileChange?.();
+  };
+
+  const showStatus = (message: string) => {
+    setStatusMessage(message);
+    window.setTimeout(() => setStatusMessage(null), 3500);
+  };
 
   const handleExport = () => {
     const blob = new Blob([exportState(state)], { type: 'application/json' });
@@ -92,7 +132,93 @@ export function SettingsView({
     reader.readAsText(file);
   };
 
-  const dateStamp = new Date().toISOString().slice(0, 10);
+  const handleCloudUpload = () => {
+    if (!cloudConfigured) return;
+    setCloudProfilesForPicker(localProfiles);
+    setProfilePickerMode('upload');
+  };
+
+  const handleCloudDownload = async () => {
+    if (!cloudConfigured) return;
+
+    try {
+      const record = await fetchCloudState();
+      const cloudUsers = Object.keys(record?.users ?? {});
+      const merged = [...new Set([...localProfiles, ...cloudUsers])];
+      if (merged.length === 0) {
+        alert('No hay usuarios en la nube ni en este dispositivo.');
+        return;
+      }
+      setCloudProfilesForPicker(merged);
+      setProfilePickerMode('download');
+    } catch {
+      alert('No se pudo leer la nube. Revisa la conexión y las claves de JSONBin.');
+    }
+  };
+
+  const handleProfilePickerConfirm = async (profileName: string) => {
+    const mode = profilePickerMode;
+    setProfilePickerMode(null);
+
+    try {
+      addLocalProfile(profileName);
+      setActiveProfile(profileName);
+      refreshProfiles();
+
+      if (mode === 'upload') {
+        const confirmed = await confirm({
+          title: 'Subir a la nube',
+          message: `Se guardará el estado actual de todos los idiomas bajo el usuario «${profileName}». ¿Continuar?`,
+          confirmLabel: 'Subir',
+        });
+        if (!confirmed) return;
+
+        const currentCloud = cloudData ?? (await fetchCloudState());
+        const merged = mergeUserBackup(currentCloud, profileName, buildFullBackup());
+        updateCloudData(merged);
+        await flushCloudUpdate();
+        showStatus(`Datos subidos para «${profileName}»`);
+        return;
+      }
+
+      if (mode === 'download') {
+        const record = cloudData ?? (await fetchCloudState());
+        const userRecord = record?.users?.[profileName];
+        if (!userRecord?.backup) {
+          alert(`No hay datos en la nube para «${profileName}».`);
+          return;
+        }
+
+        const confirmed = await confirm({
+          title: 'Bajar de la nube',
+          message: `Se reemplazarán las lecciones y vocabulario locales con los datos de «${profileName}». ¿Continuar?`,
+          confirmLabel: 'Importar',
+          variant: 'danger',
+        });
+        if (!confirmed) return;
+
+        await onFullRestore(userRecord.backup);
+        showStatus(`Datos de «${profileName}» importados`);
+      }
+    } catch {
+      alert('No se pudo sincronizar con JSONBin.');
+    }
+  };
+
+  const handleAddProfile = async () => {
+    const name = window.prompt('Nombre de usuario (sin contraseña):');
+    if (!name) return;
+
+    try {
+      const normalized = addLocalProfile(name);
+      setActiveProfile(normalized);
+      refreshProfiles();
+      showStatus(`Usuario «${normalized}» añadido`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Nombre inválido');
+    }
+  };
+
   const speechSourceLabel = usesOnlineAudio ? 'Lingva (en línea)' : 'Voz nativa del dispositivo';
   const speechSourceDetail = usesOnlineAudio
     ? 'Los audios se descargan de Lingva al pulsar ▶.'
@@ -103,76 +229,147 @@ export function SettingsView({
   return (
     <div className="settings-view">
       <section className="card">
-        <h2 className="card__title">Apariencia</h2>
-        <label className="field">
-          <span className="field__label">Tema</span>
-          <select
-            className="select"
-            value={theme}
-            onChange={(event) => onThemeChange(event.target.value as Theme)}
-          >
-            <option value="light">Claro</option>
-            <option value="dark">Oscuro</option>
-          </select>
-        </label>
-      </section>
+        <h2 className="card__title">Datos y sincronización</h2>
+        {statusMessage && <p className="hint settings-status">{statusMessage}</p>}
 
-      <section className="card">
-        <h2 className="card__title">Idioma de estudio</h2>
-        <p className="hint">
-          Al cambiar de idioma se guarda automáticamente tu progreso actual en este dispositivo.
-          Al volver, se restaura todo (lecciones, vocabulario y memoria).
-        </p>
-        <label className="field">
-          <span className="field__label">Idioma activo</span>
-          <div className="lang-select-row">
-            <LanguageFlag
-              lang={studyLanguage}
-              className="language-flag language-flag--select"
-              title={langConfig.label}
-            />
-            <select
-              className="select lang-select-row__select"
-              value={studyLanguage}
-              onChange={(e) => onLanguageChange(e.target.value as StudyLanguage)}
-            >
-              {(Object.keys(LANGUAGES) as StudyLanguage[]).map((code) => (
-                <option key={code} value={code}>
-                  {LANGUAGES[code].label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </label>
-      </section>
-
-      <section className="card">
-        <h2 className="card__title">Traducciones</h2>
-        <p className="hint">
-          Por defecto se usa Google Translate. Lingva solo actúa como respaldo si Google falla.
-          Las traducciones manuales se conservan aunque cambies de servicio.
-        </p>
-        <label className="field">
-          <span className="field__label">Servicio de traducción</span>
-          <select
-            className="select"
-            value={translationProvider}
-            onChange={(e) => onTranslationProviderChange(e.target.value as TranslationProvider)}
+        <div className="settings-data-actions">
+          {cloudConfigured && (
+            <>
+              <button
+                type="button"
+                className="btn btn--primary settings-data-actions__btn settings-data-actions__btn--icon"
+                onClick={handleCloudUpload}
+                disabled={cloudLoading}
+                aria-label="Subir a la nube"
+                title="Subir a la nube"
+              >
+                {cloudLoading ? '…' : '☁ ↑'}
+              </button>
+              <button
+                type="button"
+                className="btn btn--secondary settings-data-actions__btn settings-data-actions__btn--icon"
+                onClick={() => void handleCloudDownload()}
+                disabled={cloudLoading}
+                aria-label="Bajar de la nube"
+                title="Bajar de la nube"
+              >
+                ☁ ↓
+              </button>
+            </>
+          )}
+          <button type="button" className="btn btn--secondary settings-data-actions__btn" onClick={handleExport}>
+            Exportar backup
+          </button>
+          <button
+            type="button"
+            className="btn btn--secondary settings-data-actions__btn"
+            onClick={() => fileRef.current?.click()}
           >
-            <option value="google">Google Translate (predeterminado)</option>
-            <option value="lingva">Lingva</option>
-          </select>
-        </label>
-        {translationProvider === 'google' ? (
-          <p className="hint">
-            Traducciones vía <strong>translate.googleapis.com</strong>. Si falla, Lingva entra solo
-            para ese texto.
-          </p>
-        ) : (
-          <p className="hint">
-            Traducciones vía instancias públicas de Lingva (p. ej. lingva.ml).
+            Importar backup
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleImportFile(file);
+              e.target.value = '';
+            }}
+          />
+        </div>
+
+        {!cloudConfigured && (
+          <p className="hint hint--warning">
+            Para sincronizar entre dispositivos configura <code>VITE_JSONBIN_BIN_ID</code> y{' '}
+            <code>VITE_JSONBIN_ACCESS_KEY</code> en el entorno de despliegue.
           </p>
         )}
+        {cloudError && <p className="hint hint--warning">{cloudError}</p>}
+
+        <div className="settings-profiles">
+          <div className="settings-profiles__header">
+            <span className="field__label">Usuario local</span>
+            {activeProfile ? (
+              <span className="settings-profiles__active">{activeProfile}</span>
+            ) : (
+              <span className="hint">Sin usuario activo</span>
+            )}
+          </div>
+          {localProfiles.length > 0 && (
+            <div className="settings-profiles__list">
+              {localProfiles.map((profile) => (
+                <button
+                  key={profile}
+                  type="button"
+                  className={`settings-profiles__chip${profile === activeProfile ? ' settings-profiles__chip--active' : ''}`}
+                  onClick={() => {
+                    setActiveProfile(profile);
+                    refreshProfiles();
+                  }}
+                >
+                  {profile}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="btn-row">
+            <button type="button" className="btn btn--secondary btn--sm" onClick={() => void handleAddProfile()}>
+              Añadir usuario
+            </button>
+            {activeProfile && (
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => {
+                  removeLocalProfile(activeProfile);
+                  refreshProfiles();
+                }}
+              >
+                Quitar activo
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="card card--compact">
+        <h2 className="card__title">Preferencias</h2>
+        <div className="settings-prefs-row">
+          <label className="settings-prefs-row__item">
+            <span className="field__label">Idioma</span>
+            <div className="lang-select-row">
+              <LanguageFlag
+                lang={studyLanguage}
+                className="language-flag language-flag--select"
+                title={langConfig.label}
+              />
+              <select
+                className="select lang-select-row__select"
+                value={studyLanguage}
+                onChange={(e) => onLanguageChange(e.target.value as StudyLanguage)}
+              >
+                {(Object.keys(LANGUAGES) as StudyLanguage[]).map((code) => (
+                  <option key={code} value={code}>
+                    {LANGUAGES[code].label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </label>
+          <label className="settings-prefs-row__item">
+            <span className="field__label">Tema</span>
+            <select
+              className="select"
+              value={theme}
+              onChange={(event) => onThemeChange(event.target.value as Theme)}
+            >
+              <option value="light">Claro</option>
+              <option value="dark">Oscuro</option>
+            </select>
+          </label>
+        </div>
       </section>
 
       <section className="card">
@@ -273,77 +470,20 @@ export function SettingsView({
         )}
       </section>
 
-      <section className="card">
-        <h2 className="card__title">Datos</h2>
-        <div className="settings-export">
-          <div className="settings-export__backup">
-            <button type="button" className="btn btn--primary" onClick={handleExport}>
-              Exportar backup
-            </button>
-            <button
-              type="button"
-              className="btn btn--secondary"
-              onClick={() => fileRef.current?.click()}
-            >
-              Importar
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json"
-              hidden
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void handleImportFile(file);
-                e.target.value = '';
-              }}
-            />
-          </div>
-          <div className="settings-export__vocab">
-            <span className="settings-export__vocab-label">Vocabulario</span>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              onClick={() =>
-                downloadTextFile(
-                  exportVocabularyJson(state.vocabulary),
-                  `vocabulario-${studyLanguage}-${dateStamp}.json`,
-                  'application/json',
-                )
-              }
-            >
-              JSON
-            </button>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              onClick={() =>
-                downloadTextFile(
-                  exportVocabularyCsv(state.vocabulary),
-                  `vocabulario-${studyLanguage}-${dateStamp}.csv`,
-                  'text/csv',
-                )
-              }
-            >
-              CSV
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="card card--muted">
-        <h2 className="card__title">Resumen</h2>
-        <div className="stats-row">
-          <div className="stat">
-            <span className="stat__value">{state.savedTexts.length}</span>
-            <span className="stat__label">Lecciones</span>
-          </div>
-          <div className="stat">
-            <span className="stat__value">{state.vocabulary.length}</span>
-            <span className="stat__label">Palabras</span>
-          </div>
-        </div>
-      </section>
+      <ProfilePickerDialog
+        open={profilePickerMode !== null}
+        title={profilePickerMode === 'upload' ? 'Subir: elegir usuario' : 'Bajar: elegir usuario'}
+        message={
+          profilePickerMode === 'upload'
+            ? '¿Bajo qué nombre de usuario quieres guardar estos datos en la nube?'
+            : '¿Qué usuario quieres restaurar en este dispositivo?'
+        }
+        profiles={cloudProfilesForPicker}
+        confirmLabel={profilePickerMode === 'upload' ? 'Subir' : 'Importar'}
+        allowNew={profilePickerMode === 'upload'}
+        onConfirm={(profileName) => void handleProfilePickerConfirm(profileName)}
+        onCancel={() => setProfilePickerMode(null)}
+      />
 
       <section className="card settings-danger-zone">
         <h2 className="card__title">Zona de peligro</h2>

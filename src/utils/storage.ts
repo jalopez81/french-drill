@@ -4,7 +4,8 @@ import { updateSrs } from './spacedRepetition';
 import { APP_STATE_VERSION } from '../types';
 import { activateTranslationLang, cacheTranslation, getCachedTranslation } from './translate';
 import { activateAudioLang } from './audioCache';
-import { normalizeWord, uniqueWords } from './wordExtractor';
+import { createCapsuleEntries, type MemoryCapsule } from './lessonCapsules';
+import { normalizePhrase, normalizeWord, uniqueWords } from './wordExtractor';
 import { splitIntoSentences, titleFromText } from './sentenceSplitter';
 
 function stateStorageKey(lang: StudyLanguage): string {
@@ -55,7 +56,7 @@ export function loadState(lang: StudyLanguage): AppState {
     const raw = localStorage.getItem(stateStorageKey(lang));
     if (!raw) return emptyState();
     const parsed = JSON.parse(raw) as AppState;
-    return {
+    const loaded: AppState = {
       version: parsed.version ?? APP_STATE_VERSION,
       savedTexts: parsed.savedTexts ?? [],
       vocabulary: (parsed.vocabulary ?? []).map((entry) => {
@@ -64,6 +65,7 @@ export function loadState(lang: StudyLanguage): AppState {
         return { ...entry, translation };
       }),
     };
+    return backfillAllLessonMemoryItems(loaded);
   } catch {
     return emptyState();
   }
@@ -211,6 +213,76 @@ export function updateVocabTranslation(
       entry.normalized === normalized ? { ...entry, translation: trimmed } : entry,
     ),
   };
+}
+
+export function mergeMemoryCapsules(
+  state: AppState,
+  capsules: MemoryCapsule[],
+  sourceTextId: string,
+): AppState {
+  const newEntries = createCapsuleEntries(capsules, sourceTextId, state.vocabulary);
+
+  if (newEntries.length === 0) return state;
+
+  return {
+    ...state,
+    savedTexts: state.savedTexts.map((item) =>
+      item.id === sourceTextId ? { ...item, capsulesAt: Date.now() } : item,
+    ),
+    vocabulary: [...newEntries, ...state.vocabulary],
+  };
+}
+
+export function syncLessonMemoryItems(
+  state: AppState,
+  sourceTextId: string,
+  sentences: string[],
+  capsules: MemoryCapsule[] = [],
+): AppState {
+  const occupied = new Set(state.vocabulary.map((entry) => entry.normalized));
+  const sentenceEntries: VocabEntry[] = [];
+
+  for (const sentence of sentences) {
+    const trimmed = sentence.trim();
+    if (!trimmed) continue;
+
+    const translation = getCachedTranslation(trimmed);
+    if (!translation) continue;
+
+    const normalized = normalizePhrase(trimmed);
+    if (!normalized || occupied.has(normalized)) continue;
+
+    cacheTranslation(trimmed, translation);
+    occupied.add(normalized);
+    sentenceEntries.push({
+      id: createId(),
+      word: trimmed,
+      normalized,
+      translation,
+      kind: 'sentence',
+      sourceTextId,
+      addedAt: Date.now(),
+    });
+  }
+
+  let next: AppState =
+    sentenceEntries.length > 0
+      ? { ...state, vocabulary: [...sentenceEntries, ...state.vocabulary] }
+      : state;
+
+  if (capsules.length > 0) {
+    next = mergeMemoryCapsules(next, capsules, sourceTextId);
+  }
+
+  return next;
+}
+
+export function backfillAllLessonMemoryItems(state: AppState): AppState {
+  let next = state;
+  for (const text of state.savedTexts) {
+    next = syncLessonMemoryItems(next, text.id, text.sentences, []);
+  }
+  return next;
 }
 
 export function exportState(state: AppState): string {

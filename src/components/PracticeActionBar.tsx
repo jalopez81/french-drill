@@ -92,7 +92,7 @@ export function PracticeActionBar({
         disabled={!canTranslate || translating || saving}
         aria-label="Traducir lección"
       >
-        {translating ? '…' : translated ? '✓' : 'Trad.'}
+        {translating ? 'Traduciendo…' : translated ? 'Traducido ✓' : 'Traducir'}
       </button>
 
       {isLoadedLesson ? (

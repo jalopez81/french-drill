@@ -5,7 +5,11 @@ export interface SavedText {
   sentences: string[];
   createdAt: number;
   lastPracticedAt?: number;
+  /** Cuándo se generaron cápsulas de memoria para esta lección */
+  capsulesAt?: number;
 }
+
+export type VocabEntryKind = 'word' | 'capsule' | 'sentence';
 
 export interface VocabEntry {
   id: string;
@@ -15,6 +19,7 @@ export interface VocabEntry {
   addedAt: number;
   sourceTextId?: string;
   srs?: VocabSrs;
+  kind?: VocabEntryKind;
 }
 
 export interface VocabSrs {

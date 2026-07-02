@@ -85,38 +85,33 @@ function SavedTextCard({
     <article className="saved-text-card">
       <div className="saved-text-card__body">
         <div className="saved-text-card__header">
-          {editingTitle ? (
-            <input
-              type="text"
-              className="saved-text-card__title-input"
-              value={draftTitle}
-              onChange={(event) => setDraftTitle(event.target.value)}
-              onBlur={saveTitle}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') saveTitle();
-                if (event.key === 'Escape') {
-                  setDraftTitle(text.title);
-                  setEditingTitle(false);
-                }
-              }}
-              autoFocus
-            />
-          ) : (
-            <button
-              type="button"
-              className="saved-text-card__title-btn"
-              onClick={() => setEditingTitle(true)}
-              title="Editar título"
-            >
-              {text.title}
-            </button>
-          )}
-          <span
-            className={`saved-text-card__mastery${mastery === 100 ? ' saved-text-card__mastery--complete' : ''}`}
-            title="Dominio aproximado de la lección"
-            aria-label={`Dominio aproximado: ${mastery} por ciento`}
-          >
-            {mastery}%
+          <span className="saved-text-card__title-btn-wrap">
+            {editingTitle ? (
+              <input
+                type="text"
+                className="saved-text-card__title-input"
+                value={draftTitle}
+                onChange={(event) => setDraftTitle(event.target.value)}
+                onBlur={saveTitle}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') saveTitle();
+                  if (event.key === 'Escape') {
+                    setDraftTitle(text.title);
+                    setEditingTitle(false);
+                  }
+                }}
+                autoFocus
+              />
+            ) : (
+              <button
+                type="button"
+                className="saved-text-card__title-btn"
+                onClick={() => setEditingTitle(true)}
+                title="Editar título"
+              >
+                {text.title}
+              </button>
+            )}
           </span>
         </div>
         <p className="saved-text-card__meta">
@@ -237,8 +232,8 @@ export function SavedTextsView({
         </div>
       ) : (
         <>
-          <div className="saved-texts-toolbar">
-            <label className="vocab-search">
+          <div className="saved-texts-toolbar vocab-toolbar">
+            <label className="vocab-search vocab-toolbar__search">
               <span className="sr-only">Buscar lección</span>
               <input
                 type="search"
@@ -248,19 +243,19 @@ export function SavedTextsView({
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
-            <label className="field field--compact">
-              <span className="sr-only">Ordenar lecciones</span>
+            <div className="vocab-toolbar__controls saved-texts-toolbar__controls">
               <select
-                className="select"
+                className="select vocab-toolbar__sort"
                 value={sortMode}
                 onChange={(event) => setSortMode(event.target.value as SortMode)}
+                aria-label="Ordenar lecciones"
               >
                 <option value="recent">Más recientes</option>
                 <option value="pending">Más pendientes</option>
                 <option value="mastery">Menor dominio</option>
                 <option value="title">Título A–Z</option>
               </select>
-            </label>
+            </div>
           </div>
 
           {sortedTexts.length === 0 ? (

@@ -12,6 +12,15 @@ export function normalizeWord(word: string): string {
     .replace(/\p{M}/gu, '');
 }
 
+export function normalizePhrase(phrase: string): string {
+  return phrase
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function uniqueWords(text: string): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
@@ -25,4 +34,8 @@ export function uniqueWords(text: string): string[] {
   }
 
   return result;
+}
+
+export function countPhraseWords(text: string): number {
+  return extractWords(text).length;
 }

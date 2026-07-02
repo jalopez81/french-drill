@@ -9,8 +9,10 @@ import {
   translateBulk,
   translateToSpanish,
 } from '../utils/translate';
+import { fetchMemoryCapsules, type MemoryCapsule } from '../utils/lessonCapsules';
+import type { StudyLanguage } from '../config/languages';
 
-export function useTranslation() {
+export function useTranslation(studyLanguage: StudyLanguage) {
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [loadingKeys, setLoadingKeys] = useState<Set<string>>(new Set());
   const [errorKeys, setErrorKeys] = useState<Set<string>>(new Set());
@@ -60,9 +62,10 @@ export function useTranslation() {
         setTranslations((prev) => (prev[key] ? prev : { ...prev, [key]: cached }));
         return;
       }
-    } else {
-      removeCachedTranslation(key);
+      return;
     }
+
+    removeCachedTranslation(key);
 
     let shouldFetch = false;
     setLoadingKeys((prev) => {
@@ -80,7 +83,7 @@ export function useTranslation() {
     });
 
     try {
-      const translated = await translateToSpanish(key, { force: options?.force });
+      const translated = await translateToSpanish(key, { force: true });
       setTranslations((prev) => ({ ...prev, [key]: translated }));
     } catch {
       setErrorKeys((prev) => new Set(prev).add(key));
@@ -107,34 +110,50 @@ export function useTranslation() {
     });
   }, []);
 
-  const translateAllText = useCallback(async (content: string) => {
-    const trimmed = content.trim();
-    if (!trimmed) return { ok: false as const, count: 0 };
+  const translateAllText = useCallback(
+    async (content: string) => {
+      const trimmed = content.trim();
+      if (!trimmed) {
+        return { ok: false as const, count: 0, memoryCapsules: [] as MemoryCapsule[] };
+      }
 
-    const sentences = splitIntoSentences(trimmed);
-    const words = uniqueWords(trimmed);
-    const items = [...new Set([...sentences, ...words])];
+      const sentences = splitIntoSentences(trimmed);
+      const words = uniqueWords(trimmed);
+      const items = [...new Set([...sentences, ...words])];
 
-    setIsTranslatingAll(true);
-    setErrorKeys((prev) => {
-      const next = new Set(prev);
-      items.forEach((item) => next.delete(item));
-      return next;
-    });
-
-    try {
-      const bulk = await translateBulk(items);
-      setTranslations((prev) => ({ ...prev, ...bulk }));
-      return { ok: true as const, count: Object.keys(bulk).length };
-    } catch {
-      items.forEach((item) => {
-        setErrorKeys((prev) => new Set(prev).add(item));
+      setIsTranslatingAll(true);
+      setErrorKeys((prev) => {
+        const next = new Set(prev);
+        items.forEach((item) => next.delete(item));
+        return next;
       });
-      return { ok: false as const, count: 0 };
-    } finally {
-      setIsTranslatingAll(false);
-    }
-  }, []);
+
+      try {
+        const bulk = await translateBulk(items, { lessonSentences: sentences });
+        let memoryCapsules: MemoryCapsule[] = [];
+        try {
+          memoryCapsules = await fetchMemoryCapsules(sentences, studyLanguage);
+        } catch {
+          memoryCapsules = [];
+        }
+
+        setTranslations((prev) => ({ ...prev, ...bulk.translations }));
+        return {
+          ok: true as const,
+          count: Object.keys(bulk.translations).length,
+          memoryCapsules,
+        };
+      } catch {
+        items.forEach((item) => {
+          setErrorKeys((prev) => new Set(prev).add(item));
+        });
+        return { ok: false as const, count: 0, memoryCapsules: [] as MemoryCapsule[] };
+      } finally {
+        setIsTranslatingAll(false);
+      }
+    },
+    [studyLanguage],
+  );
 
   const isTextFullyTranslated = useCallback(
     (content: string): boolean => {

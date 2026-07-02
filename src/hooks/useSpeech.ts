@@ -8,6 +8,7 @@ import {
   speakWithLingva,
   stopLingvaSpeech,
 } from '../utils/lingvaSpeech';
+import type { AudioPrefetchProgress } from '../utils/audioCache';
 import type { SpeechSpeed } from '../utils/speechSpeed';
 import {
   loadSpeechSpeed,
@@ -350,9 +351,12 @@ export function useSpeech(studyLanguage: StudyLanguage) {
   }, [speechMode, studyLanguage]);
 
   const prefetchSpeech = useCallback(
-    async (texts: string[]) => {
+    async (
+      texts: string[],
+      options?: { onProgress?: (progress: AudioPrefetchProgress) => void },
+    ) => {
       if (!usesOnlineAudio()) return 0;
-      return prefetchStudyAudio(texts);
+      return prefetchStudyAudio(texts, options);
     },
     [usesOnlineAudio],
   );

@@ -5,7 +5,7 @@ import {
   countDue,
   getFlashcardCategory,
   isDue,
-  sortByReviewPriority,
+  shuffleDeck,
 } from '../utils/spacedRepetition';
 import { normalizeWord, uniqueWords } from '../utils/wordExtractor';
 
@@ -34,11 +34,15 @@ function filterDeck(
 
   if (filter.textId) {
     const text = savedTexts.find((item) => item.id === filter.textId);
-    if (text) {
-      const words = new Set(uniqueWords(text.content).map(normalizeWord));
-      result = result.filter((entry) => words.has(entry.normalized));
-    } else {
+    if (!text) {
       result = [];
+    } else {
+      const words = new Set(uniqueWords(text.content).map(normalizeWord));
+      result = result.filter(
+        (entry) =>
+          entry.sourceTextId === filter.textId ||
+          ((!entry.kind || entry.kind === 'word') && words.has(entry.normalized)),
+      );
     }
   }
 
@@ -86,7 +90,7 @@ export function useFlashcards(
     (mode: 'due' | 'all' = 'due') => {
       const cards =
         mode === 'all' ? filteredDeck : filteredDeck.filter((entry) => isDue(entry));
-      setQueue(sortByReviewPriority(cards));
+      setQueue(shuffleDeck(cards));
       setRevealed(false);
       recentIdsRef.current = [];
       setQueueMode(mode);
@@ -97,7 +101,7 @@ export function useFlashcards(
 
   useEffect(() => {
     const cards = filteredDeck.filter((entry) => isDue(entry));
-    setQueue(sortByReviewPriority(cards));
+    setQueue(shuffleDeck(cards));
     setRevealed(false);
     setSessionDone(0);
     recentIdsRef.current = [];
@@ -128,7 +132,7 @@ export function useFlashcards(
   const startCategorySession = useCallback(
     (category: FlashcardSessionFilter['category']) => {
       const cards = filteredDeck.filter((entry) => getFlashcardCategory(entry) === category);
-      setQueue(sortByReviewPriority(cards));
+      setQueue(shuffleDeck(cards));
       setRevealed(false);
       recentIdsRef.current = [];
       setQueueMode('all');

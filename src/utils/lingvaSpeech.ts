@@ -1,5 +1,5 @@
 import type { StudyLanguage } from '../config/languages';
-import { cacheAudio, getCachedAudio, prefetchAudio } from './audioCache';
+import { cacheAudio, getCachedAudio, prefetchAudio, type AudioPrefetchProgress } from './audioCache';
 import { LINGVA_INSTANCES } from './lingva';
 import { LANGUAGES } from '../config/languages';
 import { lingvaFetch } from './lingvaClient';
@@ -105,8 +105,11 @@ export function speakWithLingva(text: string, playbackRate = 1): Promise<void> {
   return fetchStudyAudio(trimmed).then((bytes) => playAudioBytes(bytes, playbackRate));
 }
 
-export async function prefetchStudyAudio(texts: string[]): Promise<number> {
-  return prefetchAudio(texts, fetchStudyAudio);
+export async function prefetchStudyAudio(
+  texts: string[],
+  options?: { onProgress?: (progress: AudioPrefetchProgress) => void },
+): Promise<number> {
+  return prefetchAudio(texts, fetchStudyAudio, options);
 }
 
 export function canUseNativeSpeech(): boolean {

@@ -16,6 +16,6 @@ export function FlashcardSummary({ vocabulary, onCategoryClick }: FlashcardSumma
   if (total === 0) return null;
 
   return (
-    <WordCategorySummary summary={summary} variant="grid" onCategoryClick={onCategoryClick} />
+    <WordCategorySummary summary={summary} variant="inline" onCategoryClick={onCategoryClick} />
   );
 }

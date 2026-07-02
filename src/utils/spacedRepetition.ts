@@ -85,6 +85,15 @@ export function sortByReviewPriority<T extends { srs?: VocabSrs }>(entries: T[],
   });
 }
 
+export function shuffleDeck<T>(entries: T[]): T[] {
+  const result = [...entries];
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export function formatNextReview(nextReview: number, now = Date.now()): string {
   const diff = nextReview - now;
   if (diff <= 0) return 'Ahora';

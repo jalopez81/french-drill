@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FlashcardRating, VocabEntry } from '../types';
 import { formatNextReview } from '../utils/spacedRepetition';
+import { getVocabKind, vocabKindLabel, vocabKindPillClass } from '../utils/vocabKind';
 import { FlashcardSummary } from './FlashcardSummary';
+import { VocabKindPeek } from './VocabKindPeek';
 import type { FlashcardCategory } from '../types';
 import { ProgressBar } from './ProgressBar';
 
 interface FlashcardsViewProps {
-  flashcardLangLabel: string;
   vocabulary: VocabEntry[];
   dueCount: number;
   totalCount: number;
@@ -38,7 +39,6 @@ const SWIPE_THRESHOLD = 72;
 const SWIPE_EXIT_MS = 260;
 
 export function FlashcardsView({
-  flashcardLangLabel,
   vocabulary,
   dueCount,
   totalCount,
@@ -69,6 +69,8 @@ export function FlashcardsView({
   const [exitDirection, setExitDirection] = useState<'left' | 'right' | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  const lastAutoSpeakRef = useRef<{ id: string; at: number } | null>(null);
+
   onSpeakRef.current = onSpeak;
   onRateRef.current = onRate;
 
@@ -79,6 +81,10 @@ export function FlashcardsView({
 
   useEffect(() => {
     if (!currentCard) return;
+    const now = Date.now();
+    const last = lastAutoSpeakRef.current;
+    if (last?.id === currentCard.id && now - last.at < 800) return;
+    lastAutoSpeakRef.current = { id: currentCard.id, at: now };
     void onSpeakRef.current(currentCard.word);
   }, [currentCard?.id]);
 
@@ -209,12 +215,14 @@ export function FlashcardsView({
 
   const header = (
     <>
-      <div className="flashcards-header">
-        <h2 className="section-title">Memoria</h2>
-        <p className="flashcards-header__meta">{totalCount} palabras en memoria</p>
+      <div className="flashcards-header flashcards-header--compact">
+        <h2 className="section-title flashcards-header__title">Memoria</h2>
+        <span className="flashcards-header__meta">
+          {dueCount} pend. · {totalCount} en memoria
+        </span>
       </div>
       <FlashcardSummary vocabulary={vocabulary} onCategoryClick={onCategoryClick} />
-      <p className="hint flashcards-hint">Toca una categoría para repasar solo esas palabras.</p>
+      <VocabKindPeek vocabulary={vocabulary} className="vocab-kind-peek--flashcards" />
     </>
   );
 
@@ -260,7 +268,7 @@ export function FlashcardsView({
       {header}
 
       <p className="flashcards-header__meta flashcards-header__meta--session">
-        {dueCount} pendientes · {remainingInSession} en sesión
+        Sesión · {remainingInSession} restantes
       </p>
 
       {sessionTotal > 0 && (
@@ -317,7 +325,9 @@ export function FlashcardsView({
           }}
         >
           <div className="flashcard__top">
-            <span className="pill pill--blue">{flashcardLangLabel}</span>
+            <span className={vocabKindPillClass(getVocabKind(liveCard))}>
+              {vocabKindLabel(getVocabKind(liveCard))}
+            </span>
             <button
               type="button"
               className="btn btn--primary btn--icon"

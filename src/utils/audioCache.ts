@@ -1,6 +1,18 @@
 import type { StudyLanguage } from '../config/languages';
 import { mapWithConcurrency } from './requestQueue';
 
+export interface AudioPrefetchProgress {
+  done: number;
+  total: number;
+  remaining: number;
+  current?: string;
+}
+
+export interface PrefetchAudioOptions {
+  concurrency?: number;
+  onProgress?: (progress: AudioPrefetchProgress) => void;
+}
+
 const memoryCache = new Map<string, Uint8Array>();
 let activeLang: StudyLanguage = 'fr';
 
@@ -143,8 +155,9 @@ export async function cacheAudio(text: string, bytes: Uint8Array): Promise<void>
 export async function prefetchAudio(
   texts: string[],
   fetcher: (text: string) => Promise<Uint8Array>,
-  concurrency = 1,
+  options: PrefetchAudioOptions = {},
 ): Promise<number> {
+  const concurrency = options.concurrency ?? 1;
   const keys = [...new Set(texts.map(cacheKey).filter(Boolean))];
   const missing: string[] = [];
 
@@ -153,17 +166,32 @@ export async function prefetchAudio(
     if (!cached) missing.push(key);
   }
 
+  const total = keys.length;
+  const cachedCount = total - missing.length;
   let fetched = 0;
+
+  const report = (current?: string) => {
+    options.onProgress?.({
+      done: cachedCount + fetched,
+      total,
+      remaining: missing.length - fetched,
+      current,
+    });
+  };
+
+  report();
 
   await mapWithConcurrency(missing, concurrency, async (key) => {
     try {
       const bytes = await fetcher(key);
       await cacheAudio(key, bytes);
-      fetched += 1;
     } catch {
       // skip failed clips
+    } finally {
+      fetched += 1;
+      report(key);
     }
   });
 
-  return keys.length - missing.length + fetched;
+  return cachedCount + fetched;
 }

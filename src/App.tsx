@@ -20,9 +20,10 @@ import { SavedTextsView } from './components/SavedTextsView';
 import { SettingsView } from './components/SettingsView';
 import { LanguageFlag } from './components/LanguageFlag';
 import { countDue } from './utils/spacedRepetition';
-import { migrateLegacyState, clearLastLessonId, loadLastLessonId, saveLastLessonId } from './utils/storage';
-import { migrateLegacyTranslationCache, initTranslationProvider, setTranslationProvider, setManualTranslation, removeCachedTranslation, translateToSpanish } from './utils/translate';
-import type { TranslationProvider } from './utils/translate';
+import { migrateLegacyState, clearLastLessonId, loadLastLessonId, saveLastLessonId, loadState, saveState, backfillAllLessonMemoryItems } from './utils/storage';
+import { migrateLegacyTranslationCache, setManualTranslation, removeCachedTranslation, translateBulk } from './utils/translate';
+import { ensureMissingLessonCapsules } from './utils/lessonCapsules';
+import type { MemoryCapsule } from './utils/lessonCapsules';
 import { recordStudyActivity } from './utils/progressStats';
 import { regenerateVocabularyAssets, regenerateWordAssets } from './utils/regenerateVocabulary';
 import type { RegenerateProgress } from './utils/regenerateVocabulary';
@@ -43,10 +44,13 @@ function AppContent() {
     removeVocabEntry,
     updateVocabTranslationForWord,
     bulkUpdateVocabTranslations,
+    syncLessonMemory,
     markTextPracticed,
     renameSavedText,
     rateCard,
     restoreFromBackup,
+    restoreFullBackup,
+    reloadFromStorage,
     resetAll,
   } = useAppState(studyLanguage);
 
@@ -75,9 +79,6 @@ function AppContent() {
   const [tab, setTab] = useState<Tab>('practice');
   const [loadRequest, setLoadRequest] = useState<{ text: SavedText; key: number } | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
-  const [translationProvider, setTranslationProviderState] = useState<TranslationProvider>(() =>
-    initTranslationProvider(),
-  );
   const [flashcardFilter, setFlashcardFilter] = useState<FlashcardSessionFilter | null>(null);
   const [vocabFilter, setVocabFilter] = useState<VocabCategoryFilter | null>(null);
   const [regeneratingVocab, setRegeneratingVocab] = useState(false);
@@ -111,8 +112,12 @@ function AppContent() {
 
   const flashcards = useFlashcards(state.vocabulary, state.savedTexts, flashcardFilter);
 
-  const handleSave = (content: string, title?: string) => {
-    saveCurrentText(content, title);
+  const handleSave = (
+    content: string,
+    title?: string,
+    memory?: { sentences?: string[]; capsules?: MemoryCapsule[] },
+  ) => {
+    saveCurrentText(content, title, memory);
   };
 
   const handleLoadText = (text: SavedText) => {
@@ -194,9 +199,12 @@ function AppContent() {
     async (word: string) => {
       removeCachedTranslation(word);
       try {
-        const translated = await translateToSpanish(word, { force: true });
-        updateVocabTranslationForWord(word, translated);
-        return translated;
+        const result = await translateBulk([word]);
+        const translated = result.translations[word];
+        if (translated) {
+          updateVocabTranslationForWord(word, translated);
+        }
+        return translated ?? null;
       } catch {
         return null;
       }
@@ -206,15 +214,15 @@ function AppContent() {
 
   const handleRegenerateWord = useCallback(
     async (word: string) => {
-      const translated = await regenerateWordAssets(word, { skipManual: false });
-      if (translated) {
-        updateVocabTranslationForWord(word, translated);
+      const result = await regenerateWordAssets(word, { skipManual: false });
+      if (result.translation) {
+        updateVocabTranslationForWord(word, result.translation);
       }
       if (usesOnlineAudio()) {
         await removeCachedAudio(word);
         await prefetchSpeech([word]);
       }
-      return translated;
+      return result.translation;
     },
     [prefetchSpeech, updateVocabTranslationForWord, usesOnlineAudio],
   );
@@ -355,6 +363,7 @@ function AppContent() {
               window.setTimeout(() => setSaveNotice(null), 2500);
             }}
             onUpdateVocabTranslation={handleSaveWordTranslation}
+            onSyncLessonMemory={syncLessonMemory}
             prefetchSpeech={prefetchSpeech}
             speechSpeed={speechSpeed}
             onSpeechSpeedChange={setSpeechSpeed}
@@ -403,7 +412,6 @@ function AppContent() {
           <FlashcardsView
             key={`${studyLanguage}-${flashcardFilter?.textId ?? ''}-${flashcardFilter?.category ?? ''}`}
             vocabulary={state.vocabulary}
-            flashcardLangLabel={langConfig.flashcardLangLabel}
             dueCount={flashcards.dueCount}
             totalCount={flashcards.totalCount}
             sessionDone={flashcards.sessionDone}
@@ -439,11 +447,6 @@ function AppContent() {
             usesOnlineAudio={usesOnlineAudio()}
             canUseNativeSpeech={nativeSpeech}
             systemVoiceCount={systemVoiceCount}
-            translationProvider={translationProvider}
-            onTranslationProviderChange={(provider) => {
-              setTranslationProvider(provider);
-              setTranslationProviderState(provider);
-            }}
             theme={theme}
             onThemeChange={setTheme}
             onImport={(json) => {
@@ -453,6 +456,31 @@ function AppContent() {
               } catch {
                 alert('No se pudo importar el backup');
               }
+            }}
+            onFullRestore={async (backup) => {
+              restoreFullBackup(backup);
+              const langs = Object.keys(LANGUAGES) as StudyLanguage[];
+              let capsulesAdded = 0;
+              for (const lang of langs) {
+                const loaded = backfillAllLessonMemoryItems(loadState(lang));
+                const { state: next, capsulesAdded: added } = await ensureMissingLessonCapsules(
+                  loaded,
+                  lang,
+                );
+                saveState(next, lang);
+                capsulesAdded += added;
+              }
+              reloadFromStorage();
+              const nextLang = getActiveLanguage();
+              if (nextLang !== studyLanguage) {
+                setStudyLanguage(nextLang);
+              }
+              const notice =
+                capsulesAdded > 0
+                  ? `Datos importados · ${capsulesAdded} cápsulas generadas`
+                  : 'Datos importados de la nube';
+              setSaveNotice(notice);
+              window.setTimeout(() => setSaveNotice(null), 4000);
             }}
             onResetAll={handleResetAll}
           />
