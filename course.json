@@ -151,56 +151,64 @@
             "sentences": [
                 {
                     "id": "a1-u03-s01",
-                    "text": "Monsieur, notre monde change pendant un an.",
-                    "translation": "Señor, nuestro mundo cambia durante un año.",
+                    "text": "Paul: Le monde change pendant un an.",
+                    "translation": "Paul: El mundo cambia durante un año.",
                     "wordIds": [
-                        77,
                         71,
-                        75,
                         90,
+                        75,
                         78
                     ]
                 },
                 {
                     "id": "a1-u03-s02",
-                    "text": "Non, sans raison je veux trouver la solution.",
-                    "translation": "No, sin razón quiero encontrar la solución.",
+                    "text": "Marie: Non, sans raison je veux trouver la solution.",
+                    "translation": "Marie: No, sin razón quiero encontrar la solución.",
                     "wordIds": [
-                        76,
                         72,
+                        76,
                         74,
                         80
                     ]
                 },
                 {
                     "id": "a1-u03-s03",
-                    "text": "Alors, personne ne peut venir après le jour.",
-                    "translation": "Entonces, nadie puede venir después del día.",
+                    "text": "Paul: Alors, personne ne peut venir chez moi.",
+                    "translation": "Paul: Entonces, nadie puede venir a mi casa.",
                     "wordIds": [
                         82,
                         85,
                         84,
-                        83,
-                        79
+                        83
                     ]
                 },
                 {
                     "id": "a1-u03-s04",
-                    "text": "Je veux demander lequel est le dernier.",
-                    "translation": "Quiero preguntar cuál es el último.",
+                    "text": "Marie: C'est le dernier livre dont je veux parler.",
+                    "translation": "Marie: Es el último libro del cual quiero hablar.",
                     "wordIds": [
-                        81,
-                        89,
-                        88
+                        88,
+                        73
                     ]
                 },
                 {
                     "id": "a1-u03-s05",
-                    "text": "Tu peux rendre le livre à Marie.",
-                    "translation": "Puedes devolverle el libro a Marie.",
+                    "text": "Paul: Je veux demander lequel rendre de ma part.",
+                    "translation": "Paul: Quiero preguntar cuál devolver por mi parte.",
                     "wordIds": [
+                        81,
+                        89,
                         86,
-                        73
+                        87
+                    ]
+                },
+                {
+                    "id": "a1-u03-s06",
+                    "text": "Marie: Monsieur, je vais après lui.",
+                    "translation": "Marie: Señor, voy detrás de él.",
+                    "wordIds": [
+                        77,
+                        79
                     ]
                 }
             ]
@@ -213,24 +221,24 @@
             "sentences": [
                 {
                     "id": "a1-u04-s01",
-                    "text": "Marie, je veux passer une heure là avec toi.",
-                    "translation": "Marie, quiero pasar una hora ahí contigo.",
+                    "text": "Paul: Je veux passer une heure là tout seul.",
+                    "translation": "Paul: Quiero pasar una hora allí completamente solo.",
                     "wordIds": [
                         91,
                         100,
-                        108
+                        108,
+                        106
                     ]
                 },
                 {
                     "id": "a1-u04-s02",
-                    "text": "Ça va, depuis un an je reste seul.",
-                    "translation": "Está bien, desde hace un año me quedo solo.",
+                    "text": "Marie: Ça va, depuis un an je reste ici.",
+                    "translation": "Marie: Está bien, desde hace un año me quedo aquí.",
                     "wordIds": [
                         95,
                         93,
                         101,
-                        97,
-                        106
+                        97
                     ]
                 },
                 {
@@ -276,14 +284,13 @@
             "sentences": [
                 {
                     "id": "a1-u05-s01",
-                    "text": "Tu dois continuer quand tu arrives à la fin du pays.",
-                    "translation": "Debes continuar cuando llegas al final del país.",
+                    "text": "Paul: Tu dois continuer quand tu arrives à la fin.",
+                    "translation": "Paul: Debes continuar cuando llegas al final.",
                     "wordIds": [
                         111,
                         112,
                         118,
-                        113,
-                        114
+                        113
                     ]
                 },
                 {
@@ -310,11 +317,12 @@
                 },
                 {
                     "id": "a1-u05-s03b",
-                    "text": "Nous sommes ensemble là.",
-                    "translation": "Estamos juntos ahí.",
+                    "text": "Marie: Viens avec moi, nous sommes ensemble là dans ce pays.",
+                    "translation": "Marie: Ven conmigo, estamos juntos ahí en este país.",
                     "wordIds": [
+                        130,
                         123,
-                        130
+                        114
                     ]
                 },
                 {
@@ -346,52 +354,51 @@
             "sentences": [
                 {
                     "id": "a1-u06-s01",
-                    "text": "Je crois que chaque vie est un sujet politique.",
-                    "translation": "Creo que cada vida es un tema político.",
+                    "text": "Paul: Je crois que chaque vie est un sujet important.",
+                    "translation": "Paul: Creo que cada vida es un tema importante.",
                     "wordIds": [
                         136,
                         149,
                         131,
-                        132,
-                        134
+                        132
                     ]
                 },
                 {
                     "id": "a1-u06-s02",
-                    "text": "Est-ce un petit homme ou un grand droit ?",
-                    "translation": "¿Es un hombre pequeño o un gran derecho?",
+                    "text": "Marie: Est-ce un petit homme en général ou un grand chef ?",
+                    "translation": "Marie: ¿Es un hombre pequeño en general o un gran jefe?",
                     "wordIds": [
                         142,
                         135,
-                        150,
-                        146
+                        146,
+                        150
                     ]
                 },
                 {
                     "id": "a1-u06-s03a",
-                    "text": "Je commence à entendre beaucoup de choses.",
-                    "translation": "Empiezo a escuchar muchas cosas.",
+                    "text": "Paul: Je commence à entendre beaucoup de bruit.",
+                    "translation": "Paul: Empiezo a escuchar mucho ruido.",
                     "wordIds": [
                         138,
                         147,
-                        144,
-                        124
+                        148
                     ]
                 },
                 {
                     "id": "a1-u06-s03b",
-                    "text": "Donc, quel est le fait important ?",
-                    "translation": "Entonces, ¿cuál es el hecho importante?",
+                    "text": "Marie: Donc, quel est ce fait politique ?",
+                    "translation": "Marie: Entonces, ¿cuál es este hecho político?",
                     "wordIds": [
+                        144,
                         145,
-                        148,
-                        140
+                        140,
+                        134
                     ]
                 },
                 {
                     "id": "a1-u06-s04",
-                    "text": "Je veux connaître la réponse à cette question jusque-là.",
-                    "translation": "Quiero conocer la respuesta a esta pregunta hasta allí.",
+                    "text": "Paul: Je veux connaître la réponse à cette question.",
+                    "translation": "Paul: Quiero conocer la respuesta a esta pregunta.",
                     "wordIds": [
                         137,
                         133,
@@ -400,8 +407,8 @@
                 },
                 {
                     "id": "a1-u06-s05",
-                    "text": "Je compte sur un ami comme tel.",
-                    "translation": "Cuento con un amigo como tal.",
+                    "text": "Marie: Je compte sur un ami comme tel.",
+                    "translation": "Marie: Cuento con un amigo como tal.",
                     "wordIds": [
                         139,
                         141
@@ -2910,11 +2917,12 @@
                 },
                 {
                     "id": "a1-u41-s06",
-                    "text": "Marie: Le prochain projet est très intéressant.",
-                    "translation": "Marie: El próximo proyecto es muy interesante.",
+                    "text": "Marie: Le prochain projet est très intéressant depuis le mois dernier.",
+                    "translation": "Marie: El próximo proyecto es muy interesante desde el mes pasado.",
                     "wordIds": [
                         843,
-                        847
+                        847,
+                        844
                     ]
                 },
                 {
@@ -3288,7 +3296,8 @@
                     "wordIds": [
                         942,
                         933,
-                        934
+                        934,
+                        936
                     ]
                 },
                 {
