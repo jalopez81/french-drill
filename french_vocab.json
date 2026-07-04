@@ -1,222 +1,341 @@
 [
   {
-    "id": 31,
-    "word": "mais",
-    "translation": "pero",
-    "category": "conjunción",
+    "id": 1,
+    "word": "un",
+    "translation": "un",
+    "category": "artículo",
     "level": "A1",
-    "frequency_ranking": 31,
+    "frequency_ranking": 1,
     "tags": [
-      "conjunción"
+      "artículo",
+      "gramática"
     ]
   },
   {
-    "id": 32,
-    "word": "leur",
-    "translation": "su/les",
+    "id": 2,
+    "word": "à",
+    "translation": "a",
+    "category": "preposición",
+    "level": "A1",
+    "frequency_ranking": 2,
+    "tags": [
+      "preposición",
+      "gramática"
+    ]
+  },
+  {
+    "id": 3,
+    "word": "en",
+    "translation": "en",
+    "category": "preposición",
+    "level": "A1",
+    "frequency_ranking": 3,
+    "tags": [
+      "preposición",
+      "gramática"
+    ]
+  },
+  {
+    "id": 4,
+    "word": "le",
+    "translation": "el",
+    "category": "artículo",
+    "level": "A1",
+    "frequency_ranking": 4,
+    "tags": [
+      "artículo",
+      "gramática"
+    ]
+  },
+  {
+    "id": 5,
+    "word": "et",
+    "translation": "y",
+    "category": "conjunción",
+    "level": "A1",
+    "frequency_ranking": 5,
+    "tags": [
+      "conjunción",
+      "gramática"
+    ]
+  },
+  {
+    "id": 6,
+    "word": "être",
+    "translation": "ser/estar",
+    "category": "verbo",
+    "level": "A1",
+    "frequency_ranking": 6,
+    "tags": [
+      "verbo",
+      "básico"
+    ]
+  },
+  {
+    "id": 7,
+    "word": "de",
+    "translation": "de",
+    "category": "preposición",
+    "level": "A1",
+    "frequency_ranking": 7,
+    "tags": [
+      "preposición",
+      "gramática"
+    ]
+  },
+  {
+    "id": 8,
+    "word": "avoir",
+    "translation": "haber/tener",
+    "category": "verbo",
+    "level": "A1",
+    "frequency_ranking": 8,
+    "tags": [
+      "verbo",
+      "básico"
+    ]
+  },
+  {
+    "id": 9,
+    "word": "que",
+    "translation": "que",
+    "category": "conjunción/pronombre",
+    "level": "A1",
+    "frequency_ranking": 9,
+    "tags": [
+      "gramática"
+    ]
+  },
+  {
+    "id": 10,
+    "word": "ne",
+    "translation": "no",
+    "category": "adverbio",
+    "level": "A1",
+    "frequency_ranking": 10,
+    "tags": [
+      "gramática",
+      "negación"
+    ]
+  },
+  {
+    "id": 11,
+    "word": "dans",
+    "translation": "en/dentro de",
+    "category": "preposición",
+    "level": "A1",
+    "frequency_ranking": 11,
+    "tags": [
+      "preposición"
+    ]
+  },
+  {
+    "id": 12,
+    "word": "ce",
+    "translation": "este/esto",
     "category": "determinante/pronombre",
     "level": "A1",
-    "frequency_ranking": 32,
+    "frequency_ranking": 12,
+    "tags": [
+      "gramática"
+    ]
+  },
+  {
+    "id": 13,
+    "word": "il",
+    "translation": "él",
+    "category": "pronombre",
+    "level": "A1",
+    "frequency_ranking": 13,
+    "tags": [
+      "pronombre"
+    ]
+  },
+  {
+    "id": 14,
+    "word": "qui",
+    "translation": "que/quien",
+    "category": "pronombre",
+    "level": "A1",
+    "frequency_ranking": 14,
+    "tags": [
+      "gramática"
+    ]
+  },
+  {
+    "id": 15,
+    "word": "pas",
+    "translation": "no",
+    "category": "adverbio",
+    "level": "A1",
+    "frequency_ranking": 15,
+    "tags": [
+      "negación"
+    ]
+  },
+  {
+    "id": 16,
+    "word": "pour",
+    "translation": "para/por",
+    "category": "preposición",
+    "level": "A1",
+    "frequency_ranking": 16,
+    "tags": [
+      "preposición"
+    ]
+  },
+  {
+    "id": 17,
+    "word": "sur",
+    "translation": "sobre",
+    "category": "preposición",
+    "level": "A1",
+    "frequency_ranking": 17,
+    "tags": [
+      "preposición"
+    ]
+  },
+  {
+    "id": 18,
+    "word": "se",
+    "translation": "se",
+    "category": "pronombre",
+    "level": "A1",
+    "frequency_ranking": 18,
+    "tags": [
+      "gramática"
+    ]
+  },
+  {
+    "id": 19,
+    "word": "son",
+    "translation": "su",
+    "category": "determinante",
+    "level": "A1",
+    "frequency_ranking": 19,
     "tags": [
       "posesivo"
     ]
   },
   {
-    "id": 33,
-    "word": "comme",
-    "translation": "como",
-    "category": "conjunción",
+    "id": 20,
+    "word": "plus",
+    "translation": "más",
+    "category": "adverbio",
     "level": "A1",
-    "frequency_ranking": 33,
+    "frequency_ranking": 20,
     "tags": [
-      "comparación"
+      "cantidad"
     ]
   },
   {
-    "id": 34,
-    "word": "ou",
-    "translation": "o",
-    "category": "conjunción",
-    "level": "A1",
-    "frequency_ranking": 34,
-    "tags": [
-      "conjunción"
-    ]
-  },
-  {
-    "id": 35,
-    "word": "si",
-    "translation": "si",
-    "category": "conjunción",
-    "level": "A1",
-    "frequency_ranking": 35,
-    "tags": [
-      "condicional"
-    ]
-  },
-  {
-    "id": 36,
-    "word": "avant",
-    "translation": "antes",
-    "category": "preposición",
-    "level": "A1",
-    "frequency_ranking": 36,
-    "tags": [
-      "tiempo"
-    ]
-  },
-  {
-    "id": 37,
-    "word": "y",
-    "translation": "allí/ahí",
-    "category": "adverbio/pronombre",
-    "level": "A2",
-    "frequency_ranking": 37,
-    "tags": [
-      "adverbio"
-    ]
-  },
-  {
-    "id": 38,
-    "word": "dire",
-    "translation": "decir",
+    "id": 21,
+    "word": "pouvoir",
+    "translation": "poder",
     "category": "verbo",
     "level": "A1",
-    "frequency_ranking": 38,
+    "frequency_ranking": 21,
     "tags": [
       "verbo"
     ]
   },
   {
-    "id": 39,
-    "word": "elle",
-    "translation": "ella",
+    "id": 22,
+    "word": "par",
+    "translation": "por",
+    "category": "preposición",
+    "level": "A1",
+    "frequency_ranking": 22,
+    "tags": [
+      "preposición"
+    ]
+  },
+  {
+    "id": 23,
+    "word": "je",
+    "translation": "yo",
     "category": "pronombre",
     "level": "A1",
-    "frequency_ranking": 39,
+    "frequency_ranking": 23,
     "tags": [
       "pronombre"
     ]
   },
   {
-    "id": 40,
-    "word": "devoir",
-    "translation": "deber",
+    "id": 24,
+    "word": "avec",
+    "translation": "con",
+    "category": "preposición",
+    "level": "A1",
+    "frequency_ranking": 24,
+    "tags": [
+      "preposición"
+    ]
+  },
+  {
+    "id": 25,
+    "word": "tout",
+    "translation": "todo",
+    "category": "determinante/pronombre",
+    "level": "A1",
+    "frequency_ranking": 25,
+    "tags": [
+      "cantidad"
+    ]
+  },
+  {
+    "id": 26,
+    "word": "faire",
+    "translation": "hacer",
     "category": "verbo",
     "level": "A1",
-    "frequency_ranking": 40,
+    "frequency_ranking": 26,
     "tags": [
       "verbo"
     ]
   },
   {
-    "id": 41,
-    "word": "donner",
-    "translation": "dar",
+    "id": 27,
+    "word": "nous",
+    "translation": "nosotros",
+    "category": "pronombre",
+    "level": "A1",
+    "frequency_ranking": 27,
+    "tags": [
+      "pronombre"
+    ]
+  },
+  {
+    "id": 28,
+    "word": "mettre",
+    "translation": "poner",
     "category": "verbo",
     "level": "A1",
-    "frequency_ranking": 41,
+    "frequency_ranking": 28,
     "tags": [
       "verbo"
     ]
   },
   {
-    "id": 42,
-    "word": "deux",
-    "translation": "dos",
-    "category": "número",
+    "id": 29,
+    "word": "autre",
+    "translation": "otro",
+    "category": "adjetivo/pronombre",
     "level": "A1",
-    "frequency_ranking": 42,
-    "tags": [
-      "número"
-    ]
-  },
-  {
-    "id": 43,
-    "word": "même",
-    "translation": "mismo",
-    "category": "adjetivo/adverbio",
-    "level": "A1",
-    "frequency_ranking": 43,
+    "frequency_ranking": 29,
     "tags": [
       "adjetivo"
     ]
   },
   {
-    "id": 44,
-    "word": "prendre",
-    "translation": "tomar",
-    "category": "verbo",
-    "level": "A1",
-    "frequency_ranking": 44,
-    "tags": [
-      "verbo"
-    ]
-  },
-  {
-    "id": 45,
-    "word": "où",
-    "translation": "donde",
-    "category": "adverbio",
-    "level": "A1",
-    "frequency_ranking": 45,
-    "tags": [
-      "lugar"
-    ]
-  },
-  {
-    "id": 46,
-    "word": "aussi",
-    "translation": "también",
-    "category": "adverbio",
-    "level": "A1",
-    "frequency_ranking": 46,
-    "tags": [
-      "adverbio"
-    ]
-  },
-  {
-    "id": 47,
-    "word": "celui",
-    "translation": "aquel/este",
+    "id": 30,
+    "word": "on",
+    "translation": "uno/nosotros",
     "category": "pronombre",
     "level": "A2",
-    "frequency_ranking": 47,
+    "frequency_ranking": 30,
     "tags": [
       "pronombre"
-    ]
-  },
-  {
-    "id": 48,
-    "word": "bien",
-    "translation": "bien",
-    "category": "adverbio",
-    "level": "A1",
-    "frequency_ranking": 48,
-    "tags": [
-      "adverbio"
-    ]
-  },
-  {
-    "id": 49,
-    "word": "cela",
-    "translation": "eso",
-    "category": "pronombre",
-    "level": "A1",
-    "frequency_ranking": 49,
-    "tags": [
-      "pronombre"
-    ]
-  },
-  {
-    "id": 50,
-    "word": "fois",
-    "translation": "vez",
-    "category": "sustantivo",
-    "level": "A1",
-    "frequency_ranking": 50,
-    "tags": [
-      "tiempo"
     ]
   },
   {
