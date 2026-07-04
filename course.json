@@ -5965,6 +5965,1375 @@
                     ]
                 }
             ]
+        },
+        {
+            "id": "a1-u82",
+            "title": "Acciones físicas y cambios",
+            "level": "A1",
+            "order": 82,
+            "sentences": [
+                {
+                    "id": "a1-u82-s01",
+                    "text": "Paul: Je vais baisser le son, balancer le sac et barrer la route.",
+                    "translation": "Paul: Voy a bajar el volumen, balancear el bolso y bloquear la carretera.",
+                    "wordIds": [
+                        1651,
+                        1652,
+                        1653
+                    ]
+                },
+                {
+                    "id": "a1-u82-s02",
+                    "text": "Marie: Tu peux bâtir cette table, bercer le bébé et battre les œufs sans te blesser.",
+                    "translation": "Marie: Puedes construir esta mesa, mecer al bebé y batir los huevos sin herirte.",
+                    "wordIds": [
+                        1654,
+                        1656,
+                        1655,
+                        1657
+                    ]
+                },
+                {
+                    "id": "a1-u82-s03",
+                    "text": "Paul: Boire de l'eau, bouger un peu, regarder le soleil briller.",
+                    "translation": "Paul: Beber agua, moverse un poco, mirar el sol brillar.",
+                    "wordIds": [
+                        1658,
+                        1659,
+                        1660
+                    ]
+                },
+                {
+                    "id": "a1-u82-s04",
+                    "text": "Marie: Ne pas briser ce verre ni brûler ce papier, mais le cacher.",
+                    "translation": "Marie: No romper este vaso ni quemar este papel, sino esconderlo.",
+                    "wordIds": [
+                        1661,
+                        1662,
+                        1663
+                    ]
+                },
+                {
+                    "id": "a1-u82-s05",
+                    "text": "Paul: Je veux calculer le prix, calmer mon ami et ne rien casser.",
+                    "translation": "Paul: Quiero calcular el precio, calmar a mi amigo y no romper nada.",
+                    "wordIds": [
+                        1664,
+                        1665,
+                        1666
+                    ]
+                },
+                {
+                    "id": "a1-u82-s06",
+                    "text": "Marie: Causer des problèmes peut nous forcer à céder.",
+                    "translation": "Marie: Causar problemas puede obligarnos a ceder.",
+                    "wordIds": [
+                        1667,
+                        1668
+                    ]
+                },
+                {
+                    "id": "a1-u82-s07",
+                    "text": "Paul: Célébrer la vie et cesser de pleurer.",
+                    "translation": "Paul: Celebrar la vida y cesar de llorar.",
+                    "wordIds": [
+                        1669,
+                        1670
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u83",
+            "title": "Organización y comunicación",
+            "level": "A1",
+            "order": 83,
+            "sentences": [
+                {
+                    "id": "a1-u83-s01",
+                    "text": "Paul: Je veux changer de veste, chanter une chanson et charger mon téléphone.",
+                    "translation": "Paul: Quiero cambiar de chaqueta, cantar una canción y cargar mi teléfono.",
+                    "wordIds": [
+                        1671,
+                        1672,
+                        1673
+                    ]
+                },
+                {
+                    "id": "a1-u83-s02",
+                    "text": "Marie: Son but est de charmer le public et de chasser le stress.",
+                    "translation": "Marie: Su objetivo es encantar al público y cazar el estrés.",
+                    "wordIds": [
+                        1674,
+                        1675
+                    ]
+                },
+                {
+                    "id": "a1-u83-s03",
+                    "text": "Paul: Chauffer le lait, chercher la clé et choisir un pull.",
+                    "translation": "Paul: Calentar la leche, buscar la llave y elegir un jersey.",
+                    "wordIds": [
+                        1676,
+                        1677,
+                        1678
+                    ]
+                },
+                {
+                    "id": "a1-u83-s04",
+                    "text": "Marie: Faire circuler l'information et citer mes sources pour clarifier mon projet.",
+                    "translation": "Marie: Hacer circular la información y citar mis fuentes para clarificar mi proyecto.",
+                    "wordIds": [
+                        1679,
+                        1680,
+                        1681
+                    ]
+                },
+                {
+                    "id": "a1-u83-s05",
+                    "text": "Paul: Classer les papiers avant de clore la réunion, puis me coiffer.",
+                    "translation": "Paul: Clasificar los papeles antes de concluir la reunión, luego peinarme.",
+                    "wordIds": [
+                        1682,
+                        1683,
+                        1684
+                    ]
+                },
+                {
+                    "id": "a1-u83-s06",
+                    "text": "Marie: Collecter des livres, commander le repas et commencer le travail.",
+                    "translation": "Marie: Recolectar libros, pedir la comida y comenzar el trabajo.",
+                    "wordIds": [
+                        1685,
+                        1686,
+                        1687
+                    ]
+                },
+                {
+                    "id": "a1-u83-s07",
+                    "text": "Paul: Commenter cette idea sans commettre d'erreur pour bien communiquer.",
+                    "translation": "Paul: Comentar esta idea sin cometer errores para comunicar bien.",
+                    "wordIds": [
+                        1688,
+                        1689,
+                        1690
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u84",
+            "title": "Pensamiento y comprensión",
+            "level": "A1",
+            "order": 84,
+            "sentences": [
+                {
+                    "id": "a1-u84-s01",
+                    "text": "Paul: Je veux comparer les prix pour compléter mon dossier et tout comprendre.",
+                    "translation": "Paul: Quiero comparar los precios para completar mi expediente y entender todo.",
+                    "wordIds": [
+                        1691,
+                        1692,
+                        1693
+                    ]
+                },
+                {
+                    "id": "a1-u84-s02",
+                    "text": "Marie: Tu peux compter sur moi pour concevoir ce plan et conclure l'accord.",
+                    "translation": "Marie: Puedes contar conmigo para concebir este plan y concluir el acuerdo.",
+                    "wordIds": [
+                        1694,
+                        1695,
+                        1696
+                    ]
+                },
+                {
+                    "id": "a1-u84-s03",
+                    "text": "Paul: Conduire ma voiture, me confier à toi et confirmer ma venue.",
+                    "translation": "Paul: Conducir mi coche, confiar en ti y confirmar mi venida.",
+                    "wordIds": [
+                        1697,
+                        1698,
+                        1699
+                    ]
+                },
+                {
+                    "id": "a1-u84-s04",
+                    "text": "Marie: Ne pas confondre les règles, connaître ton travail et connecter l'ordinateur.",
+                    "translation": "Marie: No confundir las reglas, conocer tu trabajo y conectar el ordenador.",
+                    "wordIds": [
+                        1700,
+                        1701,
+                        1702
+                    ]
+                },
+                {
+                    "id": "a1-u84-s05",
+                    "text": "Paul: Conquérir le marché, conseiller nos clients et considérer cette offre.",
+                    "translation": "Paul: Conquistar el mercado, aconsejar a nuestros clientes y considerar esta oferta.",
+                    "wordIds": [
+                        1703,
+                        1704,
+                        1705
+                    ]
+                },
+                {
+                    "id": "a1-u84-s06",
+                    "text": "Marie: Mon travail va consister à consoler l'enfant et consommer moins.",
+                    "translation": "Marie: Mi trabajo va a consistir en consolar al niño y consumir menos.",
+                    "wordIds": [
+                        1706,
+                        1707,
+                        1708
+                    ]
+                },
+                {
+                    "id": "a1-u84-s07",
+                    "text": "Paul: Constater les faits avant de construire la maison.",
+                    "translation": "Paul: Constatar los hechos antes de construir la casa.",
+                    "wordIds": [
+                        1709,
+                        1710
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u85",
+            "title": "Relaciones e interacciones",
+            "level": "A1",
+            "order": 85,
+            "sentences": [
+                {
+                    "id": "a1-u85-s01",
+                    "text": "Paul: Je vais consulter le médecin, contacter mon patron et continuer mon travail.",
+                    "translation": "Paul: Voy a consultar al médico, contactar a mi jefe y continuar mi trabajo.",
+                    "wordIds": [
+                        1711,
+                        1712,
+                        1715
+                    ]
+                },
+                {
+                    "id": "a1-u85-s02",
+                    "text": "Marie: Cette boîte doit contenir une surprise pour contenter mon frère.",
+                    "translation": "Marie: Esta caja debe contener una sorpresa para contentar a mi hermano.",
+                    "wordIds": [
+                        1713,
+                        1714
+                    ]
+                },
+                {
+                    "id": "a1-u85-s03",
+                    "text": "Paul: Ne pas contraindre ni contrarier ton ami, mais contraster vos idées.",
+                    "translation": "Paul: No obligar ni contrariar a tu amigo, sino contrastar vuestras ideas.",
+                    "wordIds": [
+                        1716,
+                        1717,
+                        1718
+                    ]
+                },
+                {
+                    "id": "a1-u85-s04",
+                    "text": "Marie: Contribuer au projet, contrôler les coûts et convaincre le client.",
+                    "translation": "Marie: Contribuir al proyecto, controlar los costes y convencer al cliente.",
+                    "wordIds": [
+                        1719,
+                        1720,
+                        1721
+                    ]
+                },
+                {
+                    "id": "a1-u85-s05",
+                    "text": "Paul: Cela va convenir à tous, convertir le salon et convier les voisins.",
+                    "translation": "Paul: Esto va a convenir a todos, convertir el salón e invitar a los vecinos.",
+                    "wordIds": [
+                        1722,
+                        1723,
+                        1724
+                    ]
+                },
+                {
+                    "id": "a1-u85-s06",
+                    "text": "Marie: Ne pas copier les autres, corriger tes erreurs et correspondre par lettre.",
+                    "translation": "Marie: No copiar a los otros, corregir tus errores y corresponderse por carta.",
+                    "wordIds": [
+                        1725,
+                        1726,
+                        1727
+                    ]
+                },
+                {
+                    "id": "a1-u85-s07",
+                    "text": "Paul: Ne pas corrompre les gens, se coucher tôt et couper le pain.",
+                    "translation": "Paul: No corromper a la gente, acostarse temprano y cortar el pan.",
+                    "wordIds": [
+                        1728,
+                        1729,
+                        1730
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u86",
+            "title": "Verbos cotidianos y de acción",
+            "level": "A1",
+            "order": 86,
+            "sentences": [
+                {
+                    "id": "a1-u86-s01",
+                    "text": "Paul: J'aime courir dans le parc, mais ce voyage va coûter cher.",
+                    "translation": "Paul: Me gusta correr en el parque, pero este viaje va a costar caro.",
+                    "wordIds": [
+                        1731,
+                        1732
+                    ]
+                },
+                {
+                    "id": "a1-u86-s02",
+                    "text": "Marie: Couvrir la table, créer une belle robe et ne pas crier.",
+                    "translation": "Marie: Cubrir la mesa, crear un hermoso vestido y no gritar.",
+                    "wordIds": [
+                        1733,
+                        1734,
+                        1735
+                    ]
+                },
+                {
+                    "id": "a1-u86-s03",
+                    "text": "Paul: Ne pas critiquer les autres, mais croire en soi et croiser les doigts.",
+                    "translation": "Paul: No criticar a los otros, sino creer en uno mismo y cruzar los dedos.",
+                    "wordIds": [
+                        1736,
+                        1737,
+                        1738
+                    ]
+                },
+                {
+                    "id": "a1-u86-s04",
+                    "text": "Marie: Voir notre jardin croître, cueillir des fleurs et les cuire.",
+                    "translation": "Marie: Ver nuestro jardín crecer, coger flores y cocinarlas.",
+                    "wordIds": [
+                        1739,
+                        1740,
+                        1741
+                    ]
+                },
+                {
+                    "id": "a1-u86-s05",
+                    "text": "Paul: Cultiver la terre, danser la nuit et dater cette lettre.",
+                    "translation": "Paul: Cultivar la tierra, bailar por la noche y datar esta carta.",
+                    "wordIds": [
+                        1742,
+                        1743,
+                        1744
+                    ]
+                },
+                {
+                    "id": "a1-u86-s06",
+                    "text": "Marie: Débattre de cette idée et débarrasser la table.",
+                    "translation": "Marie: Debatir de esta idea y limpiar la mesa.",
+                    "wordIds": [
+                        1745,
+                        1746
+                    ]
+                },
+                {
+                    "id": "a1-u86-s07",
+                    "text": "Paul: Je ne veux pas décevoir mes parents, donc je dois décider et déclarer ma décision.",
+                    "translation": "Paul: No quiero decepcionar a mis padres, por lo tanto debo decidir y declarar mi decisión.",
+                    "wordIds": [
+                        1748,
+                        1749,
+                        1750
+                    ]
+                },
+                {
+                    "id": "a1-u86-s08",
+                    "text": "Marie: Nous devons débattre encore une fois.",
+                    "translation": "Marie: Debemos debatir una vez más.",
+                    "wordIds": [
+                        1747
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u87",
+            "title": "Cambios y descubrimientos",
+            "level": "A1",
+            "order": 87,
+            "sentences": [
+                {
+                    "id": "a1-u87-s01",
+                    "text": "Paul: Ton idée peut déclencher une dispute, décomposer le plan ou décorer la salle.",
+                    "translation": "Paul: Tu idea puede desencadenar una discusión, descomponer el plan o decorar la sala.",
+                    "wordIds": [
+                        1751,
+                        1752,
+                        1753
+                    ]
+                },
+                {
+                    "id": "a1-u87-s02",
+                    "text": "Marie: De cette idée va découler un plan pour découvrir et décrire le pays.",
+                    "translation": "Marie: De esta idea va a derivar un plan para descubrir y describir el país.",
+                    "wordIds": [
+                        1754,
+                        1755,
+                        1756
+                    ]
+                },
+                {
+                    "id": "a1-u87-s03",
+                    "text": "Paul: Décrocher le téléphone, dédier du temps et défendre notre projet.",
+                    "translation": "Paul: Descolgar el teléfono, dedicar tiempo y defender nuestro proyecto.",
+                    "wordIds": [
+                        1757,
+                        1758,
+                        1759
+                    ]
+                },
+                {
+                    "id": "a1-u87-s04",
+                    "text": "Marie: Définir la règle sans déformer les faits pour dégager la route.",
+                    "translation": "Marie: Definir la regla sin deformar los hechos para despejar el camino.",
+                    "wordIds": [
+                        1760,
+                        1761,
+                        1762
+                    ]
+                },
+                {
+                    "id": "a1-u87-s05",
+                    "text": "Paul: Déguster ce plat, déjeuner ensemble et délimiter notre jardin.",
+                    "translation": "Paul: Degustar este plato, almorzar juntos y delimitar nuestro jardín.",
+                    "wordIds": [
+                        1763,
+                        1764,
+                        1765
+                    ]
+                },
+                {
+                    "id": "a1-u87-s06",
+                    "text": "Marie: Demander de l'aide pour déménager et demeurer calme.",
+                    "translation": "Marie: Pedir ayuda para mudarse y permanecer tranquilo.",
+                    "wordIds": [
+                        1766,
+                        1767,
+                        1768
+                    ]
+                },
+                {
+                    "id": "a1-u87-s07",
+                    "text": "Paul: Démontrer la vérité et dénoncer le coupable.",
+                    "translation": "Paul: Demostrar la verdad y denunciar al culpable.",
+                    "wordIds": [
+                        1769,
+                        1770
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u88",
+            "title": "Gestión y mejora",
+            "level": "A1",
+            "order": 88,
+            "sentences": [
+                {
+                    "id": "a1-u88-s01",
+                    "text": "Paul: Je veux dépasser mes limites, cela va dépendre de ce que je veux dépenser.",
+                    "translation": "Paul: Quiero superar mis límites, esto va a depender de lo que quiera gastar.",
+                    "wordIds": [
+                        1771,
+                        1772,
+                        1773
+                    ]
+                },
+                {
+                    "id": "a1-u88-s02",
+                    "text": "Marie: Déplacer la table, déployer la carte et déposer la clé.",
+                    "translation": "Marie: Desplazar la mesa, desplegar el mapa y depositar la llave.",
+                    "wordIds": [
+                        1774,
+                        1775,
+                        1776
+                    ]
+                },
+                {
+                    "id": "a1-u88-s03",
+                    "text": "Paul: Ne pas déranger ton frère quand il veut descendre et décrire son voyage.",
+                    "translation": "Paul: No molestar a tu hermano cuando quiere bajar y describir su viaje.",
+                    "wordIds": [
+                        1777,
+                        1779,
+                        1780
+                    ]
+                },
+                {
+                    "id": "a1-u88-s04",
+                    "text": "Marie: Désigner l'artiste pour dessiner et destiner ce tableau à l'école.",
+                    "translation": "Marie: Designar al artista para dibujar y destinar este cuadro a la escuela.",
+                    "wordIds": [
+                        1781,
+                        1782,
+                        1783
+                    ]
+                },
+                {
+                    "id": "a1-u88-s05",
+                    "text": "Paul: Détacher les papiers pour se détendre et détenir la vérité.",
+                    "translation": "Paul: Separar los papeles para relajarse y poseer la verdad.",
+                    "wordIds": [
+                        1784,
+                        1785,
+                        1786
+                    ]
+                },
+                {
+                    "id": "a1-u88-s06",
+                    "text": "Marie: Ne pas détériorer ni détourner ce projet, pour ne rien détruire.",
+                    "translation": "Marie: No deteriorar ni desviar este proyecto, para no destruir nada.",
+                    "wordIds": [
+                        1787,
+                        1788,
+                        1789
+                    ]
+                },
+                {
+                    "id": "a1-u88-s07",
+                    "text": "Paul: Je vais développer ce plan et étudier ses dérivés.",
+                    "translation": "Paul: Voy a desarrollar este plan y estudiar sus derivados.",
+                    "wordIds": [
+                        1790,
+                        1778
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u89",
+            "title": "Acciones de comunicación y tiempo",
+            "level": "A1",
+            "order": 89,
+            "sentences": [
+                {
+                    "id": "a1-u89-s01",
+                    "text": "Paul: Je veux devenir fort, dévorer ce livre et faire mon devoir.",
+                    "translation": "Paul: Quiero llegar a ser fuerte, devorar este libro y cumplir mi deber.",
+                    "wordIds": [
+                        1791,
+                        1792,
+                        1793
+                    ]
+                },
+                {
+                    "id": "a1-u89-s02",
+                    "text": "Marie: Dicter la lettre, différencier les mots et diffuser la nouvelle.",
+                    "translation": "Marie: Dictar la carta, diferenciar las palabras y difundir la noticia.",
+                    "wordIds": [
+                        1794,
+                        1795,
+                        1796
+                    ]
+                },
+                {
+                    "id": "a1-u89-s03",
+                    "text": "Paul: Digérer le repas, dîner tard et dire la vérité.",
+                    "translation": "Paul: Digerir la comida, cenar tarde y decir la verdad.",
+                    "wordIds": [
+                        1797,
+                        1798,
+                        1799
+                    ]
+                },
+                {
+                    "id": "a1-u89-s04",
+                    "text": "Marie: Diriger l'équipe, discuter du projet et voir le problème disparaître.",
+                    "translation": "Marie: Dirigir el equipo, hablar del proyecto y ver el problema desaparecer.",
+                    "wordIds": [
+                        1800,
+                        1801,
+                        1802
+                    ]
+                },
+                {
+                    "id": "a1-u89-s05",
+                    "text": "Paul: Disposer les chaises, distinguer les couleurs et distribuer les feuilles.",
+                    "translation": "Paul: Disponer las sillas, distinguir los colores y distribuir las hojas.",
+                    "wordIds": [
+                        1803,
+                        1804,
+                        1805
+                    ]
+                },
+                {
+                    "id": "a1-u89-s06",
+                    "text": "Marie: Diviser le groupe, divorcer et douter de tout.",
+                    "translation": "Marie: Dividir al grupo, divorciarse y dudar de todo.",
+                    "wordIds": [
+                        1806,
+                        1807,
+                        1808
+                    ]
+                },
+                {
+                    "id": "a1-u89-s07",
+                    "text": "Paul: Dresser la table, le repas ne doit pas durer longtemps.",
+                    "translation": "Paul: Preparar la mesa, la comida no debe durar mucho tiempo.",
+                    "wordIds": [
+                        1809,
+                        1810
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u90",
+            "title": "Verbos de acción y cambio II",
+            "level": "A1",
+            "order": 90,
+            "sentences": [
+                {
+                    "id": "a1-u90-s01",
+                    "text": "Paul: Échapper au danger, éclairer le salon et échanger nos livres.",
+                    "translation": "Paul: Escapar del peligro, iluminar el salón e intercambiar nuestros libros.",
+                    "wordIds": [
+                        1811,
+                        1812,
+                        1813
+                    ]
+                },
+                {
+                    "id": "a1-u90-s02",
+                    "text": "Marie: Ne pas échouer, écouter le professeur et ne rien écraser.",
+                    "translation": "Marie: No fracasar, escuchar al profesor y no aplastar nada.",
+                    "wordIds": [
+                        1814,
+                        1815,
+                        1816
+                    ]
+                },
+                {
+                    "id": "a1-u90-s03",
+                    "text": "Paul: Écrire une lettre, éditer le texte et éduquer les enfants.",
+                    "translation": "Paul: Escribir una carta, editar el texto y educar a los niños.",
+                    "wordIds": [
+                        1817,
+                        1818,
+                        1819
+                    ]
+                },
+                {
+                    "id": "a1-u90-s04",
+                    "text": "Marie: Effacer le tableau, effectuer le travail sans effrayer mon chat.",
+                    "translation": "Marie: Borrar la pizarra, efectuar el trabajo sin asustar a mi gato.",
+                    "wordIds": [
+                        1820,
+                        1821,
+                        1822
+                    ]
+                },
+                {
+                    "id": "a1-u90-s05",
+                    "text": "Paul: Égaliser le score, élargir la route et élire notre chef.",
+                    "translation": "Paul: Igualar el marcador, ensanchar el camino y elegir a nuestro jefe.",
+                    "wordIds": [
+                        1823,
+                        1824,
+                        1825
+                    ]
+                },
+                {
+                    "id": "a1-u90-s06",
+                    "text": "Marie: Élever les enfants, éliminer les doutes et s'éloigner du bruit.",
+                    "translation": "Marie: Criar a los niños, eliminar las dudas y alejarse del ruido.",
+                    "wordIds": [
+                        1826,
+                        1827,
+                        1828
+                    ]
+                },
+                {
+                    "id": "a1-u90-s07",
+                    "text": "Paul: Je veux t'embaucher et t'embrasser.",
+                    "translation": "Paul: Quiero contratarte y abrazarte.",
+                    "wordIds": [
+                        1829,
+                        1830
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u91",
+            "title": "Verbos cotidianos y de gestión II",
+            "level": "A1",
+            "order": 91,
+            "sentences": [
+                {
+                    "id": "a1-u91-s01",
+                    "text": "Paul: Émettre un son, emmener mon chien et émouvoir la foule.",
+                    "translation": "Paul: Emitir un sonido, llevar a mi perro y conmover a la multitud.",
+                    "wordIds": [
+                        1831,
+                        1832,
+                        1833
+                    ]
+                },
+                {
+                    "id": "a1-u91-s02",
+                    "text": "Marie: Rien ne peut m'empêcher d'employer mon temps à emporter ce livre.",
+                    "translation": "Marie: Nada puede impedirme emplear mi tiempo en llevarme este libro.",
+                    "wordIds": [
+                        1834,
+                        1835,
+                        1836
+                    ]
+                },
+                {
+                    "id": "a1-u91-s03",
+                    "text": "Paul: Je dois emprunter un livre, encadrer le projet et encaisser l'argent.",
+                    "translation": "Paul: Debo pedir prestado un libro, dirigir el proyecto y cobrar el dinero.",
+                    "wordIds": [
+                        1837,
+                        1838,
+                        1839
+                    ]
+                },
+                {
+                    "id": "a1-u91-s04",
+                    "text": "Marie: Encourager mon fils, ne pas endommager ses jouets et l'endormir.",
+                    "translation": "Marie: Animar a mi hijo, no dañar sus juguetes y dormirlo.",
+                    "wordIds": [
+                        1840,
+                        1841,
+                        1842
+                    ]
+                },
+                {
+                    "id": "a1-u91-s05",
+                    "text": "Paul: Cela va m'énerver de m'enfermer ici, je veux enfiler ma veste.",
+                    "translation": "Paul: Me va a irritar encerrarme aquí, quiero ponerme mi chaqueta.",
+                    "wordIds": [
+                        1843,
+                        1844,
+                        1845
+                    ]
+                },
+                {
+                    "id": "a1-u91-s06",
+                    "text": "Marie: Tu veux t'enfuir, engager de l'aide et enlever ce sac.",
+                    "translation": "Marie: Quieres huir, contratar ayuda y quitar esta bolsa.",
+                    "wordIds": [
+                        1846,
+                        1847,
+                        1848
+                    ]
+                },
+                {
+                    "id": "a1-u91-s07",
+                    "text": "Paul: Énoncer la règle et enregistrer ta voix.",
+                    "translation": "Paul: Enunciar la regla y grabar tu voz.",
+                    "wordIds": [
+                        1849,
+                        1850
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u92",
+            "title": "Acciones y proyectos",
+            "level": "A1",
+            "order": 92,
+            "sentences": [
+                {
+                    "id": "a1-u92-s01",
+                    "text": "Paul: Lire peut enrichir l'esprit, alors je veux enseigner et me faire entendre.",
+                    "translation": "Paul: Leer puede enriquecer la mente, así que quiero enseñar y hacerme oír.",
+                    "wordIds": [
+                        1851,
+                        1852,
+                        1853
+                    ]
+                },
+                {
+                    "id": "a1-u92-s02",
+                    "text": "Marie: Ne pas enterrer les idées, mais entraîner le groupe à entrer.",
+                    "translation": "Marie: No enterrar las ideas, sino entrenar al grupo a entrar.",
+                    "wordIds": [
+                        1854,
+                        1855,
+                        1856
+                    ]
+                },
+                {
+                    "id": "a1-u92-s03",
+                    "text": "Paul: Entretenir la maison, envelopper le cadeau et envisager de l'envoyer.",
+                    "translation": "Paul: Mantener la casa, envolver el regalo y contemplar enviarlo.",
+                    "wordIds": [
+                        1857,
+                        1858,
+                        1859,
+                        1860
+                    ]
+                },
+                {
+                    "id": "a1-u92-s04",
+                    "text": "Marie: Épargner de l'argent avant d'épouser Paul, sinon cela va m'épuiser.",
+                    "translation": "Marie: Ahorrar dinero antes de casarme con Paul, si no eso me va a agotar.",
+                    "wordIds": [
+                        1861,
+                        1862,
+                        1863
+                    ]
+                },
+                {
+                    "id": "a1-u92-s05",
+                    "text": "Paul: Équiper la salle, ériger un mur et essayer de tout nettoyer.",
+                    "translation": "Paul: Equipar la sala, erigir una pared e intentar limpiarlo todo.",
+                    "wordIds": [
+                        1864,
+                        1865,
+                        1866
+                    ]
+                },
+                {
+                    "id": "a1-u92-s06",
+                    "text": "Marie: Essuyer la table, estimer le temps et établir la règle.",
+                    "translation": "Marie: Secar la mesa, estimar el tiempo y establecer la regla.",
+                    "wordIds": [
+                        1867,
+                        1868,
+                        1869
+                    ]
+                },
+                {
+                    "id": "a1-u92-s07",
+                    "text": "Paul: Je vais étaler la nappe.",
+                    "translation": "Paul: Voy a extender el mantel.",
+                    "wordIds": [
+                        1870
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u93",
+            "title": "Acciones y evaluaciones",
+            "level": "A1",
+            "order": 93,
+            "sentences": [
+                {
+                    "id": "a1-u93-s01",
+                    "text": "Paul: Éteindre la lumière va t'étonner et ne va pas t'étouffer.",
+                    "translation": "Paul: Apagar la luz te va a asombrar y no te va a asfixiar.",
+                    "wordIds": [
+                        1871,
+                        1872,
+                        1873
+                    ]
+                },
+                {
+                    "id": "a1-u93-s02",
+                    "text": "Marie: Étudier la leçon, évaluer la situation et éveiller ton intérêt.",
+                    "translation": "Marie: Estudiar la lección, evaluar la situación y despertar tu interés.",
+                    "wordIds": [
+                        1874,
+                        1875,
+                        1876
+                    ]
+                },
+                {
+                    "id": "a1-u93-s03",
+                    "text": "Paul: Éviter les erreurs, évoluer sans exagérer nos forces.",
+                    "translation": "Paul: Evitar los errores, evolucionar sin exagerar nuestras fuerzas.",
+                    "wordIds": [
+                        1877,
+                        1878,
+                        1879
+                    ]
+                },
+                {
+                    "id": "a1-u93-s04",
+                    "text": "Marie: Examiner les faits, sans excéder les limites pour exceller.",
+                    "translation": "Marie: Examinar los hechos, sin exceder los límites para sobresalir.",
+                    "wordIds": [
+                        1880,
+                        1881,
+                        1882
+                    ]
+                },
+                {
+                    "id": "a1-u93-s05",
+                    "text": "Paul: Excepter ce cas, ne pas exciter la foule et exclure ce plan.",
+                    "translation": "Paul: Exceptuar este caso, no excitar a la multitud y excluir este plan.",
+                    "wordIds": [
+                        1883,
+                        1884,
+                        1885
+                    ]
+                },
+                {
+                    "id": "a1-u93-s06",
+                    "text": "Marie: Je veux m'excuser, exécuter ma tâche et exemplifier ma méthode.",
+                    "translation": "Marie: Quiero disculparme, ejecutar mi tarea y ejemplificar mi método.",
+                    "wordIds": [
+                        1886,
+                        1887,
+                        1888
+                    ]
+                },
+                {
+                    "id": "a1-u93-s07",
+                    "text": "Paul: Exercer ton droit et exiger le respect.",
+                    "translation": "Paul: Ejercer tu derecho y exigir el respeto.",
+                    "wordIds": [
+                        1889,
+                        1890
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u94",
+            "title": "Acciones y creación",
+            "level": "A1",
+            "order": 94,
+            "sentences": [
+                {
+                    "id": "a1-u94-s01",
+                    "text": "Paul: Pour exister, je dois expédier ce colis et expérimenter de nouvelles choses.",
+                    "translation": "Paul: Para existir, debo enviar este paquete y experimentar cosas nuevas.",
+                    "wordIds": [
+                        1891,
+                        1892,
+                        1893
+                    ]
+                },
+                {
+                    "id": "a1-u94-s02",
+                    "text": "Marie: Avant de voir le temps expirer, je vais expliquer comment exploiter ce lieu.",
+                    "translation": "Marie: Antes de ver el tiempo expirar, voy a explicar cómo explotar este lugar.",
+                    "wordIds": [
+                        1894,
+                        1895,
+                        1896
+                    ]
+                },
+                {
+                    "id": "a1-u94-s03",
+                    "text": "Paul: Explorer la forêt sans voir le volcan exploser.",
+                    "translation": "Paul: Explorar el bosque sin ver el volcán explotar.",
+                    "wordIds": [
+                        1897,
+                        1898
+                    ]
+                },
+                {
+                    "id": "a1-u94-s04",
+                    "text": "Marie: Exporter les fruits et exposer nos œuvres pour exprimer notre art.",
+                    "translation": "Marie: Exportar las frutas y exponer nuestras obras para expresar nuestro arte.",
+                    "wordIds": [
+                        1899,
+                        1900,
+                        1901
+                    ]
+                },
+                {
+                    "id": "a1-u94-s05",
+                    "text": "Paul: Il veut extorquer de l'argent et extraire de l'or pour fabriquer des bijoux.",
+                    "translation": "Paul: Él quiere extorsionar dinero y extraer oro para fabricar joyas.",
+                    "wordIds": [
+                        1902,
+                        1903,
+                        1904
+                    ]
+                },
+                {
+                    "id": "a1-u94-s06",
+                    "text": "Marie: Ne pas fâcher ton père, cela va faciliter son travail pour façonner l'objet.",
+                    "translation": "Marie: No enfadar a tu padre, eso va a facilitar su trabajo para dar forma al objeto.",
+                    "wordIds": [
+                        1905,
+                        1906,
+                        1907
+                    ]
+                },
+                {
+                    "id": "a1-u94-s07",
+                    "text": "Paul: Je dois facturer le client, j'ai faillir oublier de faire le repas.",
+                    "translation": "Paul: Debo facturar al cliente, casi me olvido de hacer la comida.",
+                    "wordIds": [
+                        1908,
+                        1909,
+                        1910
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u95",
+            "title": "Acciones y sentimientos II",
+            "level": "A1",
+            "order": 95,
+            "sentences": [
+                {
+                    "id": "a1-u95-s01",
+                    "text": "Paul: Il va falloir se familiariser avec les règles, les fleurs vont se faner.",
+                    "translation": "Paul: Va a ser necesario familiarizarse con las reglas, las flores se van a marchitar.",
+                    "wordIds": [
+                        1911,
+                        1912,
+                        1913
+                    ]
+                },
+                {
+                    "id": "a1-u95-s02",
+                    "text": "Marie: Ne pas fantasmer, je veux farcir les légumes et me farder.",
+                    "translation": "Marie: No fantasear, quiero rellenar las verduras y maquillarme.",
+                    "wordIds": [
+                        1914,
+                        1915,
+                        1916
+                    ]
+                },
+                {
+                    "id": "a1-u95-s03",
+                    "text": "Paul: Le travail va me fatiguer, mais cela va favoriser ma carrière.",
+                    "translation": "Paul: El trabajo me va a cansar, pero eso va a favorecer mi carrera.",
+                    "wordIds": [
+                        1917,
+                        1918
+                    ]
+                },
+                {
+                    "id": "a1-u95-s04",
+                    "text": "Marie: Féconder la terre, je veux te féliciter pour ce bon vin.",
+                    "translation": "Marie: Fecundar la tierra, quiero felicitarte por este buen vino.",
+                    "wordIds": [
+                        1919,
+                        1920
+                    ]
+                },
+                {
+                    "id": "a1-u95-s05",
+                    "text": "Paul: Fendre le bois, laisser le jus fermenter et fermer la porte.",
+                    "translation": "Paul: Partir la leña, dejar el jugo fermentar y cerrar la puerta.",
+                    "wordIds": [
+                        1921,
+                        1922,
+                        1923
+                    ]
+                },
+                {
+                    "id": "a1-u95-s06",
+                    "text": "Marie: Festoyer avec les amis et fêter ton anniversaire.",
+                    "translation": "Marie: Banquetear con los amigos y festejar tu cumpleaños.",
+                    "wordIds": [
+                        1924,
+                        1925
+                    ]
+                },
+                {
+                    "id": "a1-u95-s07",
+                    "text": "Paul: Feuilleter ce livre, se fiancer ce soir et ne rien ficher.",
+                    "translation": "Paul: Hojear este libro, comprometerse esta noche y no hacer nada.",
+                    "wordIds": [
+                        1926,
+                        1927,
+                        1928
+                    ]
+                },
+                {
+                    "id": "a1-u95-s08",
+                    "text": "Marie: Se fier à son ami peut figer la relation.",
+                    "translation": "Marie: Confiar en su amigo puede congelar la relación.",
+                    "wordIds": [
+                        1929,
+                        1930
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u96",
+            "title": "Verbos diversos",
+            "level": "A1",
+            "order": 96,
+            "sentences": [
+                {
+                    "id": "a1-u96-s01",
+                    "text": "Paul: Figurer sur la liste, filer vite et filmer la scène.",
+                    "translation": "Paul: Figurar en la lista, largarse rápido y filmar la escena.",
+                    "wordIds": [
+                        1931,
+                        1932,
+                        1933
+                    ]
+                },
+                {
+                    "id": "a1-u96-s02",
+                    "text": "Marie: Filtrer l'eau avant de finaliser et financer le projet.",
+                    "translation": "Marie: Filtrar el agua antes de finalizar y financiar el proyecto.",
+                    "wordIds": [
+                        1934,
+                        1935,
+                        1936
+                    ]
+                },
+                {
+                    "id": "a1-u96-s03",
+                    "text": "Paul: Finir le travail, fixer le prix et voir le bois flamber.",
+                    "translation": "Paul: Terminar el trabajo, fijar el precio y ver la madera arder.",
+                    "wordIds": [
+                        1937,
+                        1938,
+                        1939
+                    ]
+                },
+                {
+                    "id": "a1-u96-s04",
+                    "text": "Marie: Flâner dans la rue, flatter le chat et fléchir le bras.",
+                    "translation": "Marie: Pasear por la calle, adular al gato y flexionar el brazo.",
+                    "wordIds": [
+                        1940,
+                        1941,
+                        1942
+                    ]
+                },
+                {
+                    "id": "a1-u96-s05",
+                    "text": "Paul: Voir les fleurs fleurir, flotter sur l'eau et fluctuer le prix.",
+                    "translation": "Paul: Ver las flores florecer, flotar en el agua y fluctuar el precio.",
+                    "wordIds": [
+                        1943,
+                        1944,
+                        1945
+                    ]
+                },
+                {
+                    "id": "a1-u96-s06",
+                    "text": "Marie: Focaliser sur le plan, voir les idées foisonner et foncer vers le but.",
+                    "translation": "Marie: Focalizarse en el plan, ver las ideas abundar y lanzarse hacia la meta.",
+                    "wordIds": [
+                        1946,
+                        1947,
+                        1948
+                    ]
+                },
+                {
+                    "id": "a1-u96-s07",
+                    "text": "Paul: Faire fonctionner la machine pour fonder notre entreprise.",
+                    "translation": "Paul: Hacer funcionar la máquina para fundar nuestra empresa.",
+                    "wordIds": [
+                        1949,
+                        1950
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u97",
+            "title": "Acciones y reacciones",
+            "level": "A1",
+            "order": 97,
+            "sentences": [
+                {
+                    "id": "a1-u97-s01",
+                    "text": "Paul: Voir la neige fondre, ne pas forcer le destin, mais forger son futur.",
+                    "translation": "Paul: Ver la nieve derretirse, no forzar el destino, sino forjar su futuro.",
+                    "wordIds": [
+                        1951,
+                        1952,
+                        1953
+                    ]
+                },
+                {
+                    "id": "a1-u97-s02",
+                    "text": "Marie: Formaliser l'accord, former les jeunes et formuler une idée.",
+                    "translation": "Marie: Formalizar el acuerdo, formar a los jóvenes y formular una idea.",
+                    "wordIds": [
+                        1954,
+                        1955,
+                        1956
+                    ]
+                },
+                {
+                    "id": "a1-u97-s03",
+                    "text": "Paul: Fortifier le mur, fouiller dans le sac et foularder le cou.",
+                    "translation": "Paul: Fortificar la pared, rebuscar en el bolso y envolver el cuello.",
+                    "wordIds": [
+                        1957,
+                        1958,
+                        1959
+                    ]
+                },
+                {
+                    "id": "a1-u97-s04",
+                    "text": "Marie: Ne rien foutre de mal, ne pas fracturer la porte et ne pas frapper.",
+                    "translation": "Marie: No hacer nada malo, no fracturar la puerta y no golpear.",
+                    "wordIds": [
+                        1960,
+                        1961,
+                        1962
+                    ]
+                },
+                {
+                    "id": "a1-u97-s05",
+                    "text": "Paul: Fréquenter ce café, frimer un peu et ne pas froisser ta chemise.",
+                    "translation": "Paul: Frecuentar este café, presumir un poco y no arrugar tu camisa.",
+                    "wordIds": [
+                        1963,
+                        1964,
+                        1965
+                    ]
+                },
+                {
+                    "id": "a1-u97-s06",
+                    "text": "Marie: Frotter la table, fuir la dispute et ne pas fumer ici.",
+                    "translation": "Marie: Frotar la mesa, huir de la discusión y no fumar aquí.",
+                    "wordIds": [
+                        1966,
+                        1967,
+                        1968
+                    ]
+                },
+                {
+                    "id": "a1-u97-s07",
+                    "text": "Paul: Fusionner les deux groupes pour gagner.",
+                    "translation": "Paul: Fusionar los dos grupos para ganar.",
+                    "wordIds": [
+                        1969,
+                        1970
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u98",
+            "title": "Gestos y vida cotidiana",
+            "level": "A1",
+            "order": 98,
+            "sentences": [
+                {
+                    "id": "a1-u98-s01",
+                    "text": "Paul: Voir le cheval galoper, ne pas gâcher la fête, mais garantir le succès.",
+                    "translation": "Paul: Ver al caballo galopar, no desperdiciar la fiesta, sino garantizar el éxito.",
+                    "wordIds": [
+                        1971,
+                        1972,
+                        1973
+                    ]
+                },
+                {
+                    "id": "a1-u98-s02",
+                    "text": "Marie: Garder le silence, ne pas gaspiller l'eau ni gâter l'enfant.",
+                    "translation": "Marie: Guardar silencio, no malgastar el agua ni mimar al niño.",
+                    "wordIds": [
+                        1974,
+                        1975,
+                        1976
+                    ]
+                },
+                {
+                    "id": "a1-u98-s03",
+                    "text": "Paul: Voir l'eau geler, entendre le chien gémir et ne pas te gêner.",
+                    "translation": "Paul: Ver el agua helarse, oír al perro gemir y no molestarte.",
+                    "wordIds": [
+                        1977,
+                        1978,
+                        1979
+                    ]
+                },
+                {
+                    "id": "a1-u98-s04",
+                    "text": "Marie: Générer de l'énergie, gérer le temps sans gesticuler.",
+                    "translation": "Marie: Generar energía, gestionar el tiempo sin gesticular.",
+                    "wordIds": [
+                        1980,
+                        1981,
+                        1982
+                    ]
+                },
+                {
+                    "id": "a1-u98-s05",
+                    "text": "Paul: Glisser sur la neige, glober les détails et gloser le texte.",
+                    "translation": "Paul: Deslizarse sobre la nieve, englobar los detalles y glosar el texto.",
+                    "wordIds": [
+                        1983,
+                        1984,
+                        1985
+                    ]
+                },
+                {
+                    "id": "a1-u98-s06",
+                    "text": "Marie: Goûter le plat, gouverner le pays et gratter la table.",
+                    "translation": "Marie: Probar el plato, gobernar el país y rascar la mesa.",
+                    "wordIds": [
+                        1986,
+                        1987,
+                        1988
+                    ]
+                },
+                {
+                    "id": "a1-u98-s07",
+                    "text": "Paul: Grignoter des fruits et griller la viande.",
+                    "translation": "Paul: Picotear frutas y asar la carne.",
+                    "wordIds": [
+                        1989,
+                        1990
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "a1-u99",
+            "title": "Acciones finales",
+            "level": "A1",
+            "order": 99,
+            "sentences": [
+                {
+                    "id": "a1-u99-s01",
+                    "text": "Paul: Grimper sur l'arbre et gronder le chat.",
+                    "translation": "Paul: Trepar al árbol y regañar al gato.",
+                    "wordIds": [
+                        1991,
+                        1992
+                    ]
+                },
+                {
+                    "id": "a1-u99-s02",
+                    "text": "Marie: Grouper les enfants, guérir le malade et guetter le danger.",
+                    "translation": "Marie: Agrupar a los niños, curar al enfermo y acechar el peligro.",
+                    "wordIds": [
+                        1993,
+                        1994,
+                        1995
+                    ]
+                },
+                {
+                    "id": "a1-u99-s03",
+                    "text": "Paul: Guider nos amis, habiller le bébé et habiter dans cette ville.",
+                    "translation": "Paul: Guiar a nuestros amigos, vestir al bebé y habitar en esta ciudad.",
+                    "wordIds": [
+                        1996,
+                        1997,
+                        1998
+                    ]
+                },
+                {
+                    "id": "a1-u99-s04",
+                    "text": "Marie: S'habituer au froid et hacher les légumes.",
+                    "translation": "Marie: Acostumbrarse al frío y picar las verduras.",
+                    "wordIds": [
+                        1999,
+                        2000
+                    ]
+                }
+            ]
         }
     ]
 }

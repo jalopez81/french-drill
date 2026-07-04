@@ -31,8 +31,9 @@ function validateCourse() {
     
     const unitOrder = unit.order;
     const startId = 31 + (unitOrder - 1) * 20;
-    const endId = startId + 19;
-    const unitTargetIds = Array.from({ length: 20 }, (_, i) => startId + i);
+    const endId = Math.min(startId + 19, 2000);
+    const length = endId - startId + 1;
+    const unitTargetIds = Array.from({ length }, (_, i) => startId + i);
     const unitCovered = new Set();
 
     unit.sentences.forEach(s => {
