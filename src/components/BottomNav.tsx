@@ -9,8 +9,8 @@ interface BottomNavProps {
 }
 
 const tabs: { id: Tab; label: string; icon: string }[] = [
-  { id: 'texts', label: 'Lecciones', icon: '📖' },
-  { id: 'practice', label: 'Práctica', icon: '⚡' },
+  { id: 'course', label: 'Curso', icon: '🎓' },
+  { id: 'practice', label: 'Práctica libre', icon: '⚡' },
   { id: 'flashcards', label: 'Memoria', icon: '🧠' },
   { id: 'vocabulary', label: 'Vocabulario', icon: '📝' },
   { id: 'settings', label: 'Ajustes', icon: '🛠' },

@@ -14,6 +14,7 @@ import { useTheme } from './hooks/useTheme';
 import { ConfirmProvider, useConfirm } from './hooks/useConfirm';
 import { BottomNav } from './components/BottomNav';
 import { PracticeView } from './components/PracticeView';
+import { CourseView } from './components/CourseView';
 import { VocabularyList } from './components/VocabularyList';
 import { FlashcardsView } from './components/FlashcardsView';
 import { SavedTextsView } from './components/SavedTextsView';
@@ -52,6 +53,7 @@ function AppContent() {
     restoreFullBackup,
     reloadFromStorage,
     resetAll,
+    seedVocabFromUnit,
   } = useAppState(studyLanguage);
 
   const {
@@ -76,7 +78,7 @@ function AppContent() {
     prefetchSpeech,
   } = useSpeech(studyLanguage);
 
-  const [tab, setTab] = useState<Tab>('practice');
+  const [tab, setTab] = useState<Tab>('course');
   const [loadRequest, setLoadRequest] = useState<{ text: SavedText; key: number } | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [flashcardFilter, setFlashcardFilter] = useState<FlashcardSessionFilter | null>(null);
@@ -158,7 +160,7 @@ function AppContent() {
     prepareLanguageSwitch(state, studyLanguage);
     setActiveLanguage(newLang);
     setStudyLanguage(newLang);
-    setTab('practice');
+    setTab('course');
     setFlashcardFilter(null);
     setVocabFilter(null);
     stop();
@@ -182,7 +184,7 @@ function AppContent() {
     setSaveNotice(null);
     clearVoice();
     reloadVoices();
-    setTab('practice');
+    setTab('course');
   };
 
   const speakWord = useCallback((word: string) => speak(word, { word }), [speak]);
@@ -344,6 +346,25 @@ function AppContent() {
       {saveNotice && <div className="toast">{saveNotice}</div>}
 
       <main className="app-main">
+        {tab === 'course' && (
+          <CourseView
+            vocabulary={state.vocabulary}
+            onStartUnit={(unit) => {
+              seedVocabFromUnit(unit);
+              // Build a SavedText-shaped object from the unit for PracticeView
+              const content = unit.sentences.map((s) => s.text).join('\n');
+              const fakeText = {
+                id: `course-${unit.id}`,
+                title: `${unit.level} · ${unit.title}`,
+                content,
+                sentences: unit.sentences.map((s) => s.text),
+                createdAt: 0,
+              };
+              setLoadRequest({ text: fakeText as any, key: Date.now() });
+              setTab('practice');
+            }}
+          />
+        )}
         {tab === 'practice' && (
           <PracticeView
             key={studyLanguage}
@@ -358,6 +379,7 @@ function AppContent() {
             onDetachLesson={handleDetachLesson}
             onCloseLesson={handleCloseLesson}
             onPracticeSaved={handlePracticeSaved}
+            isSandbox={loadRequest === null}
             onNotice={(message) => {
               setSaveNotice(message);
               window.setTimeout(() => setSaveNotice(null), 2500);

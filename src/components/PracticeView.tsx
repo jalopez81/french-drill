@@ -43,6 +43,7 @@ interface PracticeViewProps {
   onDetachLesson?: () => void;
   onCloseLesson?: () => void;
   onPracticeSaved?: (id: string) => void;
+  isSandbox?: boolean;
   onNotice?: (message: string) => void;
   onUpdateVocabTranslation?: (word: string, translation: string) => void;
   onSyncLessonMemory?: (sourceTextId: string, sentences: string[], capsules: MemoryCapsule[]) => void;
@@ -78,6 +79,7 @@ export function PracticeView({
   onDetachLesson,
   onCloseLesson,
   onPracticeSaved,
+  isSandbox = false,
   onNotice,
   onUpdateVocabTranslation,
   onSyncLessonMemory,
@@ -182,6 +184,11 @@ export function PracticeView({
 
   const handleSave = async () => {
     if (!text.trim() || saving) return;
+
+    if (isSandbox) {
+      onNotice?.('Modo Práctica libre: el texto no se guarda en el curso.');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -455,6 +462,15 @@ export function PracticeView({
 
   return (
     <div className={`practice-view${focusMode ? ' practice-view--focus' : ''}`}>
+      {isSandbox && (
+        <div className="practice-sandbox-banner" role="status">
+          <span>⚡</span>
+          <span>
+            <strong>Práctica libre</strong> — el texto no se guardará ni afectará tu vocabulario.
+            Para practicar una unidad del curso, ve a la pestaña <strong>Curso</strong>.
+          </span>
+        </div>
+      )}
       {!focusMode && (
         <div className="practice-view__setup">
           <TextInput

@@ -36,7 +36,22 @@ export interface AppState {
   vocabulary: VocabEntry[];
 }
 
-export type Tab = 'practice' | 'texts' | 'vocabulary' | 'flashcards' | 'settings';
+export interface CourseSentence {
+  id: string;
+  text: string;
+  translation: string;
+  wordIds: number[];
+}
+
+export interface CourseUnit {
+  id: string;
+  title: string;
+  level: string;
+  order: number;
+  sentences: CourseSentence[];
+}
+
+export type Tab = 'course' | 'practice' | 'texts' | 'vocabulary' | 'flashcards' | 'settings';
 
 export type FlashcardRating = 'again' | 'hard' | 'good' | 'easy';
 

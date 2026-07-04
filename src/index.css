@@ -2808,3 +2808,224 @@ textarea {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* ── CourseView ───────────────────────────────────────────── */
+.course-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
+}
+
+.course-view__header {
+  padding: 16px 16px 0;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.course-view__stats {
+  display: flex;
+  gap: 8px;
+  justify-content: space-around;
+  margin-bottom: 12px;
+}
+
+.course-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.course-stat__value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.course-stat__label {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.course-view__overall-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.course-view__overall-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.course-view__search-wrap {
+  padding: 10px 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.course-view__search {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.course-view__search:focus {
+  border-color: var(--color-primary);
+}
+
+/* ── Course unit list ────────────────────────────────────── */
+.course-unit-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.course-unit-list__empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+/* ── Course unit card ────────────────────────────────────── */
+.course-unit-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--color-surface);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.course-unit-card:hover,
+.course-unit-card:focus-visible {
+  background: var(--color-primary-light);
+  outline: none;
+}
+
+.course-unit-card__left {
+  flex-shrink: 0;
+}
+
+.course-unit-card__order {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.course-unit-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.course-unit-card__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.course-unit-card__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.course-unit-card__level {
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.course-unit-card__sentences {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.course-unit-card__progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.course-unit-card__progress-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.course-unit-card__progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.course-unit-card__progress-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  min-width: 28px;
+  text-align: right;
+}
+
+.course-unit-card__chevron {
+  font-size: 1.2rem;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+/* ── Sandbox banner ──────────────────────────────────────── */
+.practice-sandbox-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--color-primary-light);
+  border-bottom: 1px solid var(--color-primary);
+  font-size: 0.82rem;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.practice-sandbox-banner > span:first-child {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+

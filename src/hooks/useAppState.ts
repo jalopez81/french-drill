@@ -18,6 +18,9 @@ import {
 import { persistTranslationCache } from '../utils/translate';
 import { applyFullBackup, type FullAppBackup } from '../utils/fullBackup';
 import type { MemoryCapsule } from '../utils/lessonCapsules';
+import type { CourseUnit } from '../types';
+import { getUnitUniqueWordIds, getVocabWordById } from '../utils/course';
+import { normalizeWord } from '../utils/wordExtractor';
 
 export function useAppState(studyLanguage: StudyLanguage) {
   const [state, setState] = useState<AppState>(() => loadState(studyLanguage));
@@ -100,6 +103,38 @@ export function useAppState(studyLanguage: StudyLanguage) {
     [],
   );
 
+  const seedVocabFromUnit = useCallback((unit: CourseUnit) => {
+    setState((prev) => {
+      const targetIds = getUnitUniqueWordIds(unit);
+      const existingNormalized = new Set(prev.vocabulary.map((v) => v.normalized));
+      const newEntries: any[] = [];
+
+      targetIds.forEach((id) => {
+        const vw = getVocabWordById(id);
+        if (!vw) return;
+        const normalized = normalizeWord(vw.word);
+        if (!existingNormalized.has(normalized)) {
+          newEntries.push({
+            id: crypto.randomUUID(),
+            word: vw.word,
+            normalized,
+            translation: vw.translation,
+            addedAt: Date.now(),
+            kind: 'word',
+          });
+          existingNormalized.add(normalized);
+        }
+      });
+
+      if (newEntries.length === 0) return prev;
+
+      return {
+        ...prev,
+        vocabulary: [...newEntries, ...prev.vocabulary],
+      };
+    });
+  }, []);
+
   const restoreFromBackup = useCallback((json: string) => {
     const restored = importState(json);
     setState(restored);
@@ -135,5 +170,6 @@ export function useAppState(studyLanguage: StudyLanguage) {
     restoreFullBackup,
     reloadFromStorage,
     resetAll,
+    seedVocabFromUnit,
   };
 }
