@@ -5,6 +5,8 @@ export type FlashcardCategory = 'new' | 'again' | 'hard' | 'good' | 'easy';
 export type FlashcardCategorySummary = Record<FlashcardCategory, number>;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const MIN_MS = 60 * 1000;
+const HOUR_MS = 60 * MIN_MS;
 
 const RATING_QUALITY: Record<FlashcardRating, number> = {
   again: 1,
@@ -107,6 +109,52 @@ export function formatNextReview(nextReview: number, now = Date.now()): string {
   const days = Math.round(diff / DAY_MS);
   if (days === 1) return 'Mañana';
   return `En ${days} días`;
+}
+
+export interface UpcomingReviewGroup {
+  id: string;
+  count: number;
+  intervalLabel: string;
+}
+
+const UPCOMING_TIER_DEFS: ReadonlyArray<{ id: string; label: string; minMs: number; maxMs: number }> = [
+  { id: '10m', label: '10 minutos', minMs: 0, maxMs: 30 * MIN_MS },
+  { id: '1h', label: '1 hora', minMs: 30 * MIN_MS, maxMs: 2 * HOUR_MS },
+  { id: '1d', label: '1 día', minMs: 2 * HOUR_MS, maxMs: 36 * HOUR_MS },
+  { id: '2d', label: '2 días', minMs: 36 * HOUR_MS, maxMs: 60 * HOUR_MS },
+  { id: '1w', label: '1 semana', minMs: 60 * HOUR_MS, maxMs: 8 * DAY_MS },
+  { id: 'later', label: '1 mes+', minMs: 8 * DAY_MS, maxMs: Number.POSITIVE_INFINITY },
+];
+
+function tierForDiff(diffMs: number): (typeof UPCOMING_TIER_DEFS)[number] | undefined {
+  return UPCOMING_TIER_DEFS.find((tier) => diffMs >= tier.minMs && diffMs < tier.maxMs);
+}
+
+export function summarizeUpcomingReviews(
+  entries: VocabEntry[],
+  now = Date.now(),
+): UpcomingReviewGroup[] {
+  const counts = new Map(UPCOMING_TIER_DEFS.map((tier) => [tier.id, 0]));
+
+  for (const entry of entries) {
+    if (!entry.translation || !entry.srs) continue;
+    if (isDue(entry, now)) continue;
+
+    const diff = entry.srs.nextReview - now;
+    const tier = tierForDiff(diff);
+    if (tier) counts.set(tier.id, (counts.get(tier.id) ?? 0) + 1);
+  }
+
+  return UPCOMING_TIER_DEFS.map((tier) => ({
+    id: tier.id,
+    count: counts.get(tier.id) ?? 0,
+    intervalLabel: tier.label,
+  }));
+}
+
+export function formatUpcomingReviewLine(group: UpcomingReviewGroup): string {
+  const noun = group.count === 1 ? 'palabra' : 'palabras';
+  return `${group.count} ${noun} en ${group.intervalLabel}`;
 }
 
 export function getFlashcardCategory(entry: VocabEntry, now = Date.now()): FlashcardCategory {

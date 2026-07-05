@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   countDue,
   createInitialSrs,
+  formatUpcomingReviewLine,
   getFlashcardCategory,
   isDue,
   summarizeFlashcardDeck,
+  summarizeUpcomingReviews,
   shuffleDeck,
   updateSrs,
 } from './spacedRepetition';
@@ -73,5 +75,36 @@ describe('spacedRepetition', () => {
     const shuffled = shuffleDeck(deck);
     expect(shuffled).toHaveLength(3);
     expect(new Set(shuffled.map((item) => item.id))).toEqual(new Set(['a', 'b', 'c']));
+  });
+
+  it('groups upcoming reviews by interval', () => {
+    const tenMin = NOW + 10 * 60 * 1000;
+    const twoDays = NOW + 2 * 24 * 60 * 60 * 1000;
+    const deck = [
+      entry({
+        id: 'a',
+        srs: { ease: 2.5, intervalDays: 0, repetitions: 1, nextReview: tenMin, lastReview: NOW },
+      }),
+      entry({
+        id: 'b',
+        word: 'salut',
+        normalized: 'salut',
+        srs: { ease: 2.5, intervalDays: 0, repetitions: 1, nextReview: tenMin + 20_000, lastReview: NOW },
+      }),
+      entry({
+        id: 'c',
+        word: 'merci',
+        normalized: 'merci',
+        srs: { ease: 2.5, intervalDays: 2, repetitions: 2, nextReview: twoDays, lastReview: NOW },
+      }),
+    ];
+
+    const groups = summarizeUpcomingReviews(deck, NOW);
+    expect(groups).toHaveLength(6);
+    expect(groups.find((g) => g.id === '10m')).toMatchObject({ count: 2, intervalLabel: '10 minutos' });
+    expect(groups.find((g) => g.id === '2d')).toMatchObject({ count: 1, intervalLabel: '2 días' });
+    expect(groups.find((g) => g.id === '1h')?.count).toBe(0);
+    expect(formatUpcomingReviewLine(groups.find((g) => g.id === '10m')!)).toBe('2 palabras en 10 minutos');
+    expect(formatUpcomingReviewLine(groups.find((g) => g.id === '1h')!)).toBe('0 palabras en 1 hora');
   });
 });

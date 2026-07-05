@@ -5,7 +5,6 @@ interface BottomNavProps {
   onChange: (tab: Tab) => void;
   vocabCount: number;
   dueFlashcards: number;
-  savedTextsCount: number;
 }
 
 const tabs: { id: Tab; label: string; icon: string }[] = [
@@ -21,7 +20,6 @@ export function BottomNav({
   onChange,
   vocabCount,
   dueFlashcards,
-  savedTextsCount,
 }: BottomNavProps) {
   return (
     <nav className="bottom-nav" aria-label="Navegación principal">
@@ -37,9 +35,6 @@ export function BottomNav({
             {tab.icon}
           </span>
           <span className="bottom-nav__label">{tab.label}</span>
-          {tab.id === 'texts' && savedTextsCount > 0 && (
-            <span className="bottom-nav__badge">{savedTextsCount}</span>
-          )}
           {tab.id === 'vocabulary' && vocabCount > 0 && (
             <span className="bottom-nav__badge">{vocabCount}</span>
           )}

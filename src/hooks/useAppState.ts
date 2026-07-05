@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { StudyLanguage } from '../config/languages';
-import type { AppState, FlashcardRating } from '../types';
+import type { AppState, FlashcardRating, CourseUnit } from '../types';
 import {
   deleteSavedText,
   deleteVocabEntry,
@@ -12,15 +12,19 @@ import {
   saveText,
   touchSavedText,
   updateSavedTextTitle,
-  updateVocabTranslation,
+  updateSavedTextContent,
+  upsertVocabTranslation,
   syncLessonMemoryItems,
 } from '../utils/storage';
 import { persistTranslationCache } from '../utils/translate';
 import { applyFullBackup, type FullAppBackup } from '../utils/fullBackup';
 import type { MemoryCapsule } from '../utils/lessonCapsules';
-import type { CourseUnit } from '../types';
-import { getUnitUniqueWordIds, getVocabWordById } from '../utils/course';
-import { normalizeWord } from '../utils/wordExtractor';
+import { getLexiconLevelForWord } from '../utils/course';
+import {
+  applyMemoryCandidates,
+  linkUnitVocabularySource,
+  type MemoryItemCandidate,
+} from '../utils/memoryPreview';
 
 export function useAppState(studyLanguage: StudyLanguage) {
   const [state, setState] = useState<AppState>(() => loadState(studyLanguage));
@@ -48,16 +52,42 @@ export function useAppState(studyLanguage: StudyLanguage) {
     (
       content: string,
       title?: string,
-      memory?: { sentences?: string[]; capsules?: MemoryCapsule[] },
+      memory?: { selectedCandidates?: MemoryItemCandidate[] },
     ) => {
       setState((prev) => {
-        const { state, saved } = saveText(prev, content, title);
-        return syncLessonMemoryItems(
-          state,
-          saved.id,
-          memory?.sentences ?? saved.sentences,
-          memory?.capsules ?? [],
-        );
+        const { state, saved } = saveText(prev, content, title, { skipVocabulary: true });
+        if (!memory?.selectedCandidates?.length) return state;
+
+        const sourceTextId = saved.id;
+        const words = memory.selectedCandidates.filter((item) => item.kind === 'word');
+        const sentences = memory.selectedCandidates
+          .filter((item) => item.kind === 'sentence')
+          .map((item) => item.word);
+        const capsules: MemoryCapsule[] = memory.selectedCandidates
+          .filter((item) => item.kind === 'capsule')
+          .map((item) => ({
+            phrase: item.word,
+            translation: item.translation ?? '',
+          }))
+          .filter((item) => item.phrase && item.translation);
+
+        let next = applyMemoryCandidates(state, words, sourceTextId);
+        return syncLessonMemoryItems(next, sourceTextId, sentences, capsules);
+      });
+    },
+    [],
+  );
+
+  const savePersonalText = useCallback(
+    (content: string, title?: string, existingId?: string) => {
+      setState((prev) => {
+        if (existingId) {
+          return updateSavedTextContent(prev, existingId, content, title);
+        }
+        return saveText(prev, content, title, {
+          skipVocabulary: true,
+          personalPractice: true,
+        }).state;
       });
     },
     [],
@@ -84,7 +114,11 @@ export function useAppState(studyLanguage: StudyLanguage) {
   }, []);
 
   const updateVocabTranslationForWord = useCallback((word: string, translation: string) => {
-    setState((prev) => updateVocabTranslation(prev, word, translation));
+    setState((prev) =>
+      upsertVocabTranslation(prev, word, translation, {
+        lexiconLevel: getLexiconLevelForWord(word),
+      }),
+    );
   }, []);
 
   const bulkUpdateVocabTranslations = useCallback((updates: Record<string, string>) => {
@@ -97,42 +131,35 @@ export function useAppState(studyLanguage: StudyLanguage) {
   }, []);
 
   const syncLessonMemory = useCallback(
-    (sourceTextId: string, sentences: string[], capsules: MemoryCapsule[]) => {
-      setState((prev) => syncLessonMemoryItems(prev, sourceTextId, sentences, capsules));
+    (sourceTextId: string, selectedCandidates: MemoryItemCandidate[]) => {
+      setState((prev) => {
+        const sentences = selectedCandidates
+          .filter((item) => item.kind === 'sentence')
+          .map((item) => item.word);
+        const capsules: MemoryCapsule[] = selectedCandidates
+          .filter((item) => item.kind === 'capsule')
+          .map((item) => ({
+            phrase: item.word,
+            translation: item.translation ?? '',
+          }))
+          .filter((item) => item.phrase && item.translation);
+
+        return syncLessonMemoryItems(prev, sourceTextId, sentences, capsules);
+      });
     },
     [],
   );
 
-  const seedVocabFromUnit = useCallback((unit: CourseUnit) => {
+  const applyUnitToMemory = useCallback((unit: CourseUnit, selected: MemoryItemCandidate[]) => {
     setState((prev) => {
-      const targetIds = getUnitUniqueWordIds(unit);
-      const existingNormalized = new Set(prev.vocabulary.map((v) => v.normalized));
-      const newEntries: any[] = [];
-
-      targetIds.forEach((id) => {
-        const vw = getVocabWordById(id);
-        if (!vw) return;
-        const normalized = normalizeWord(vw.word);
-        if (!existingNormalized.has(normalized)) {
-          newEntries.push({
-            id: crypto.randomUUID(),
-            word: vw.word,
-            normalized,
-            translation: vw.translation,
-            addedAt: Date.now(),
-            kind: 'word',
-          });
-          existingNormalized.add(normalized);
-        }
-      });
-
-      if (newEntries.length === 0) return prev;
-
-      return {
-        ...prev,
-        vocabulary: [...newEntries, ...prev.vocabulary],
-      };
+      let next = linkUnitVocabularySource(prev, unit);
+      const words = selected.filter((item) => item.kind === 'word');
+      return applyMemoryCandidates(next, words, `course-${unit.id}`);
     });
+  }, []);
+
+  const linkCourseUnitVocab = useCallback((unit: CourseUnit) => {
+    setState((prev) => linkUnitVocabularySource(prev, unit));
   }, []);
 
   const restoreFromBackup = useCallback((json: string) => {
@@ -158,6 +185,7 @@ export function useAppState(studyLanguage: StudyLanguage) {
     setState,
     prepareLanguageSwitch,
     saveCurrentText,
+    savePersonalText,
     removeSavedText,
     removeVocabEntry,
     updateVocabTranslationForWord,
@@ -170,6 +198,7 @@ export function useAppState(studyLanguage: StudyLanguage) {
     restoreFullBackup,
     reloadFromStorage,
     resetAll,
-    seedVocabFromUnit,
+    applyUnitToMemory,
+    linkCourseUnitVocab,
   };
 }

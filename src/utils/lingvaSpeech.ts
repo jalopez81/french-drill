@@ -7,6 +7,7 @@ import { lingvaFetch } from './lingvaClient';
 let currentAudio: HTMLAudioElement | null = null;
 let currentObjectUrl: string | null = null;
 let activeLang: StudyLanguage = 'fr';
+let speechGeneration = 0;
 
 const inflightAudio = new Map<string, Promise<Uint8Array>>();
 
@@ -65,7 +66,9 @@ async function fetchStudyAudioRemote(text: string): Promise<Uint8Array> {
   throw lastError instanceof Error ? lastError : new Error('No se pudo obtener audio');
 }
 
-function playAudioBytes(bytes: Uint8Array, playbackRate = 1): Promise<void> {
+function playAudioBytes(bytes: Uint8Array, playbackRate = 1, generation = speechGeneration): Promise<void> {
+  if (generation !== speechGeneration) return Promise.resolve();
+
   stopCurrentAudio();
 
   const blob = new Blob([new Uint8Array(bytes)], { type: 'audio/mpeg' });
@@ -95,6 +98,7 @@ function playAudioBytes(bytes: Uint8Array, playbackRate = 1): Promise<void> {
 }
 
 export function stopLingvaSpeech(): void {
+  speechGeneration += 1;
   stopCurrentAudio();
 }
 
@@ -102,7 +106,11 @@ export function speakWithLingva(text: string, playbackRate = 1): Promise<void> {
   const trimmed = text.trim();
   if (!trimmed) return Promise.resolve();
 
-  return fetchStudyAudio(trimmed).then((bytes) => playAudioBytes(bytes, playbackRate));
+  const generation = speechGeneration;
+  return fetchStudyAudio(trimmed).then((bytes) => {
+    if (generation !== speechGeneration) return;
+    return playAudioBytes(bytes, playbackRate, generation);
+  });
 }
 
 export async function prefetchStudyAudio(

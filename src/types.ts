@@ -7,6 +7,10 @@ export interface SavedText {
   lastPracticedAt?: number;
   /** Cuándo se generaron cápsulas de memoria para esta lección */
   capsulesAt?: number;
+  /** Práctica personal: guardada sin añadir palabras al vocabulario */
+  personalPractice?: boolean;
+  /** Oraciones completas del curso (solo lecciones course-*; no se persiste) */
+  courseSentences?: CourseSentence[];
 }
 
 export type VocabEntryKind = 'word' | 'capsule' | 'sentence';
@@ -20,6 +24,8 @@ export interface VocabEntry {
   sourceTextId?: string;
   srs?: VocabSrs;
   kind?: VocabEntryKind;
+  /** CEFR level from lexicon (A1–B2). */
+  lexiconLevel?: string;
 }
 
 export interface VocabSrs {
@@ -36,11 +42,17 @@ export interface AppState {
   vocabulary: VocabEntry[];
 }
 
+export type CourseTense = 'present' | 'past' | 'future';
+
 export interface CourseSentence {
   id: string;
   text: string;
   translation: string;
   wordIds: number[];
+  text_past?: string;
+  text_future?: string;
+  translation_past?: string;
+  translation_future?: string;
 }
 
 export interface CourseUnit {
@@ -60,11 +72,13 @@ export type FlashcardCategory = 'new' | 'again' | 'hard' | 'good' | 'easy';
 export interface FlashcardSessionFilter {
   textId?: string;
   category?: FlashcardCategory;
+  courseUnitId?: string;
 }
 
 export interface VocabCategoryFilter {
   category?: FlashcardCategory;
   textId?: string;
+  level?: 'A1' | 'A2' | 'B1' | 'B2';
 }
 
 export const APP_STATE_VERSION = 2;

@@ -5,6 +5,61 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const FRENCH_ARTICLES = [
+  'le ', 'la ', 'les ', 'l\'', 'un ', 'une ', 'des ',
+  'du ', 'de la ', 'de l\'', 'au ', 'aux ', 'à la ', 'à l\'',
+];
+
+function stripFrenchArticles(word) {
+  let w = word.toLowerCase().trim();
+  if (w.startsWith("l'")) return w.slice(2);
+  for (const article of FRENCH_ARTICLES) {
+    if (w.startsWith(article)) return w.slice(article.length);
+  }
+  return w;
+}
+
+function deaccent(text) {
+  return text.normalize('NFD').replace(/\p{M}/gu, '');
+}
+
+function getWordSearchVariants(vocabWord) {
+  const variants = new Set();
+  const lower = vocabWord.toLowerCase().trim();
+  variants.add(lower);
+
+  const stripped = stripFrenchArticles(lower);
+  variants.add(stripped);
+
+  if (lower.startsWith("l'")) variants.add(lower.slice(2));
+  if (stripped.startsWith('se ')) variants.add(stripped.slice(3));
+  if (stripped.startsWith("s'")) variants.add(stripped.slice(2));
+
+  const parts = stripped.split(/\s+/);
+  if (parts[0] === 'se' && parts.length > 1) {
+    variants.add(parts.slice(1).join(' '));
+  }
+
+  if (stripped.length >= 4) variants.add(stripped.slice(0, 4));
+  if (stripped.length >= 5) variants.add(stripped.slice(0, 5));
+
+  return [...variants].filter((v) => v.length >= 3);
+}
+
+function wordVisibleInText(vocabWord, text) {
+  const textLower = text.toLowerCase();
+  const textPlain = deaccent(textLower);
+  const variants = getWordSearchVariants(vocabWord);
+
+  for (const variant of variants) {
+    if (textLower.includes(variant)) return true;
+    const plain = deaccent(variant);
+    if (plain.length >= 3 && textPlain.includes(plain)) return true;
+  }
+
+  return false;
+}
+
 function validateCourse() {
   const vocabPath = path.join(__dirname, 'french_vocab.json');
   const coursePath = path.join(__dirname, 'course.json');
@@ -37,6 +92,12 @@ function validateCourse() {
     const unitCovered = new Set();
 
     unit.sentences.forEach(s => {
+      for (const field of ['text_past', 'text_future', 'translation_past', 'translation_future']) {
+        if (!s[field]?.trim()) {
+          errors.push(`[${s.id}] Missing tense field "${field}"`);
+        }
+      }
+
       const words = s.text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿¡]/g, "").split(/\s+/).filter(Boolean);
       if (words.length > 15) {
         warnings.push(`[${s.id}] Text is long (${words.length} words): "${s.text}"`);
@@ -56,12 +117,7 @@ function validateCourse() {
           unitCovered.add(id);
         }
 
-        const textLower = s.text.toLowerCase();
-        const wordLower = vocabWord.word.toLowerCase();
-        
-        // Basic check: is the word root or full word present?
-        const rootWord = wordLower.substring(0, Math.min(4, wordLower.length));
-        if (!textLower.includes(rootWord) && !textLower.includes(wordLower)) {
+        if (!wordVisibleInText(vocabWord.word, s.text)) {
           warnings.push(`[${s.id}] Check visibility of wordId ${id} ("${vocabWord.word}") in text: "${s.text}"`);
         }
       });
@@ -85,7 +141,7 @@ function validateCourse() {
   if (errors.length > 0) {
     console.error(`Errors (${errors.length}):`);
     errors.forEach(e => console.error('  ❌ ' + e));
-    // process.exit(1);
+    process.exit(1);
   } else {
     console.log('✅ Validation PASSED! No errors found.');
   }

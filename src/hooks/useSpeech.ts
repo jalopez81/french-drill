@@ -79,6 +79,8 @@ export function useSpeech(studyLanguage: StudyLanguage) {
   const voiceGenderRef = useRef<VoiceGender>(voiceGender);
   const speechSpeedRef = useRef<SpeechSpeed>(speechSpeed);
   const speakingRef = useRef(false);
+  const speakGenerationRef = useRef(0);
+  const nativeSpeakTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     studyVoiceRef.current = studyVoice;
@@ -219,12 +221,23 @@ export function useSpeech(studyLanguage: StudyLanguage) {
         return Promise.reject(new Error('Voz nativa no disponible'));
       }
 
+      const sessionId = speakGenerationRef.current;
       synth.cancel();
+
+      if (nativeSpeakTimeoutRef.current !== null) {
+        window.clearTimeout(nativeSpeakTimeoutRef.current);
+        nativeSpeakTimeoutRef.current = null;
+      }
 
       const voice = resolveVoiceForSpeech(studyLanguage, studyVoiceRef.current, word);
 
       return new Promise<void>((resolve, reject) => {
         const run = () => {
+          if (sessionId !== speakGenerationRef.current) {
+            resolve();
+            return;
+          }
+
           synth.getVoices();
 
           const utterance = new SpeechSynthesisUtterance(text);
@@ -278,27 +291,32 @@ export function useSpeech(studyLanguage: StudyLanguage) {
           }
         };
 
-        window.setTimeout(run, 100);
+        nativeSpeakTimeoutRef.current = window.setTimeout(run, 100);
       });
     },
     [studyLanguage],
   );
 
   const speakOnline = useCallback(async (text: string, playbackRate: number) => {
+    const sessionId = speakGenerationRef.current;
     speakingRef.current = true;
     setSpeaking(true);
 
     try {
       await speakWithLingva(text, playbackRate);
     } finally {
-      speakingRef.current = false;
-      setSpeaking(false);
+      if (sessionId === speakGenerationRef.current) {
+        speakingRef.current = false;
+        setSpeaking(false);
+      }
     }
   }, []);
 
   const speak = useCallback(
     async (text: string, options?: SpeakOptions) => {
       if (!text.trim()) return;
+
+      speakGenerationRef.current += 1;
 
       const speed = speechSpeedRef.current;
       const nativeRate = SPEECH_SPEED_RATES[speed];
@@ -338,6 +356,11 @@ export function useSpeech(studyLanguage: StudyLanguage) {
   );
 
   const stop = useCallback(() => {
+    speakGenerationRef.current += 1;
+    if (nativeSpeakTimeoutRef.current !== null) {
+      window.clearTimeout(nativeSpeakTimeoutRef.current);
+      nativeSpeakTimeoutRef.current = null;
+    }
     window.speechSynthesis?.cancel();
     stopLingvaSpeech();
     speakingRef.current = false;

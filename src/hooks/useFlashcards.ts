@@ -6,8 +6,10 @@ import {
   getFlashcardCategory,
   isDue,
   shuffleDeck,
+  summarizeUpcomingReviews,
 } from '../utils/spacedRepetition';
 import { normalizeWord, uniqueWords } from '../utils/wordExtractor';
+import { findCourseUnitById, getUnitVocabNormalized } from '../utils/course';
 
 const RECENT_LIMIT = 3;
 
@@ -46,6 +48,21 @@ function filterDeck(
     }
   }
 
+  if (filter.courseUnitId) {
+    const unit = findCourseUnitById(filter.courseUnitId);
+    if (!unit) {
+      result = [];
+    } else {
+      const unitWords = getUnitVocabNormalized(unit);
+      const courseSourceId = `course-${filter.courseUnitId}`;
+      result = result.filter(
+        (entry) =>
+          entry.sourceTextId === courseSourceId ||
+          ((!entry.kind || entry.kind === 'word') && unitWords.has(entry.normalized)),
+      );
+    }
+  }
+
   if (filter.category) {
     result = result.filter((entry) => getFlashcardCategory(entry) === filter.category);
   }
@@ -75,7 +92,8 @@ export function useFlashcards(
   );
 
   const filterKey = useMemo(
-    () => `${sessionFilter?.textId ?? ''}:${sessionFilter?.category ?? ''}`,
+    () =>
+      `${sessionFilter?.textId ?? ''}:${sessionFilter?.category ?? ''}:${sessionFilter?.courseUnitId ?? ''}`,
     [sessionFilter],
   );
 
@@ -83,6 +101,10 @@ export function useFlashcards(
 
   const dueCount = useMemo(() => countDue(filteredDeck), [filteredDeck]);
   const totalCount = filteredDeck.length;
+  const upcomingReviews = useMemo(
+    () => summarizeUpcomingReviews(filteredDeck),
+    [filteredDeck],
+  );
 
   const currentCard = queue[0] ?? null;
 
@@ -148,6 +170,7 @@ export function useFlashcards(
     rateCard,
     dueCount,
     totalCount,
+    upcomingReviews,
     sessionDone,
     remainingInSession: queue.length,
     rebuildQueue,

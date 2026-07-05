@@ -21,6 +21,7 @@ interface SentenceCardProps {
   onSpeakSentence: () => void;
   onSelectSentence: () => void;
   onSelectWord: (word: string) => void;
+  hideTranslationToggle?: boolean;
   sentenceRef?: (element: HTMLElement | null) => void;
   wordRef?: (tokenIndex: number, element: HTMLElement | null) => void;
   focusMode?: boolean;
@@ -41,6 +42,7 @@ export function SentenceCard({
   onSpeakSentence,
   onSelectSentence,
   onSelectWord,
+  hideTranslationToggle = false,
   sentenceRef,
   wordRef,
   focusMode = false,
@@ -111,11 +113,13 @@ export function SentenceCard({
         >
           {isSpeaking ? '■' : '▶'}
         </button>
-        <EyeButton
-          active={showTranslation}
-          onClick={onToggleTranslation}
-          label={showTranslation ? 'Ocultar traducción' : 'Mostrar traducción'}
-        />
+        {!hideTranslationToggle && (
+          <EyeButton
+            active={showTranslation}
+            onClick={onToggleTranslation}
+            label={showTranslation ? 'Ocultar traducción' : 'Mostrar traducción'}
+          />
+        )}
       </div>
     </article>
   );

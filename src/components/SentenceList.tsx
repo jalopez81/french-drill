@@ -1,6 +1,7 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useRef,
   useState,
@@ -27,7 +28,18 @@ interface SentenceListProps {
   onSpeakSentence: (index: number) => void;
   onSelectSentence: (index: number) => void;
   onSelectWord: (word: string) => void;
+  showAllTranslations?: boolean;
   ref?: Ref<SentenceListHandle>;
+}
+
+function isTranslationVisible(
+  index: number,
+  showAllTranslations: boolean,
+  visibleTranslations: Set<number>,
+  suppressedTranslations: Set<number>,
+): boolean {
+  if (showAllTranslations) return !suppressedTranslations.has(index);
+  return visibleTranslations.has(index);
 }
 
 function SentenceListInner(
@@ -45,12 +57,20 @@ function SentenceListInner(
     onSpeakSentence,
     onSelectSentence,
     onSelectWord,
+    showAllTranslations = false,
   }: Omit<SentenceListProps, 'ref'>,
   ref: Ref<SentenceListHandle>,
 ) {
   const [visibleTranslations, setVisibleTranslations] = useState<Set<number>>(new Set());
+  const [suppressedTranslations, setSuppressedTranslations] = useState<Set<number>>(new Set());
   const sentenceRefs = useRef<Map<number, HTMLElement>>(new Map());
   const wordRefs = useRef<Map<string, HTMLElement>>(new Map());
+
+  useEffect(() => {
+    if (!showAllTranslations) {
+      setSuppressedTranslations(new Set());
+    }
+  }, [showAllTranslations]);
 
   const scrollToSentence = useCallback((index: number) => {
     sentenceRefs.current.get(index)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -76,9 +96,17 @@ function SentenceListInner(
   }
 
   const toggleTranslation = (index: number, sentence: string) => {
-    const isVisible = visibleTranslations.has(index);
+    if (showAllTranslations) {
+      setSuppressedTranslations((prev) => {
+        const next = new Set(prev);
+        if (next.has(index)) next.delete(index);
+        else next.add(index);
+        return next;
+      });
+      return;
+    }
 
-    if (isVisible) {
+    if (visibleTranslations.has(index)) {
       setVisibleTranslations((prev) => {
         const next = new Set(prev);
         next.delete(index);
@@ -95,7 +123,12 @@ function SentenceListInner(
 
   if (focusMode && focusIndex !== null) {
     const sentence = sentences[focusIndex];
-    const showTranslation = visibleTranslations.has(focusIndex);
+    const showTranslation = isTranslationVisible(
+      focusIndex,
+      showAllTranslations,
+      visibleTranslations,
+      suppressedTranslations,
+    );
 
     return (
       <section className="sentence-list sentence-list--focus">
@@ -135,7 +168,12 @@ function SentenceListInner(
     <section className="sentence-list">
       <h2 className="section-title sentence-list__title">Oraciones ({sentences.length})</h2>
       {sentences.map((sentence, index) => {
-        const showTranslation = visibleTranslations.has(index);
+        const showTranslation = isTranslationVisible(
+          index,
+          showAllTranslations,
+          visibleTranslations,
+          suppressedTranslations,
+        );
 
         return (
           <SentenceCard
