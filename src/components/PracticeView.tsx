@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { SavedText } from '../types';
+import type { SavedText, CourseTense } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
 import { splitIntoSentences } from '../utils/sentenceSplitter';
 import { uniqueWords } from '../utils/wordExtractor';
@@ -22,6 +22,16 @@ import { ProgressBar } from './ProgressBar';
 import type { AudioPrefetchProgress } from '../utils/audioCache';
 
 import type { MemoryCapsule } from '../utils/lessonCapsules';
+import { isCourseLessonId, buildUnitLessonContent } from '../utils/course';
+import { PersonalPracticeList } from './PersonalPracticeList';
+import { CourseTenseSelector } from './CourseTenseSelector';
+import type { MemoryItemCandidate } from '../utils/memoryPreview';
+import {
+  filterNewMemoryCandidates,
+  previewLessonMemoryItems,
+  previewSyncMemoryItems,
+} from '../utils/memoryPreview';
+import type { MemoryAddPromptOptions } from '../hooks/useMemoryAddPrompt';
 
 interface PracticeViewProps {
   studyLanguage: StudyLanguage;
@@ -29,8 +39,9 @@ interface PracticeViewProps {
   onSave: (
     content: string,
     title?: string,
-    memory?: { sentences?: string[]; capsules?: MemoryCapsule[] },
+    memory?: { selectedCandidates?: MemoryItemCandidate[] },
   ) => void;
+  onSavePersonal?: (content: string, title?: string, existingId?: string) => void;
   onSpeak: (text: string, options?: SpeakOptions) => Promise<void>;
   onStop: () => void;
   speaking: boolean;
@@ -43,15 +54,25 @@ interface PracticeViewProps {
   onDetachLesson?: () => void;
   onCloseLesson?: () => void;
   onPracticeSaved?: (id: string) => void;
+  isSandbox?: boolean;
+  personalTexts?: SavedText[];
+  onLoadPersonal?: (text: SavedText) => void;
+  onDeletePersonal?: (id: string) => void;
+  onConfirmDeletePersonal?: (title: string) => Promise<boolean>;
   onNotice?: (message: string) => void;
   onUpdateVocabTranslation?: (word: string, translation: string) => void;
-  onSyncLessonMemory?: (sourceTextId: string, sentences: string[], capsules: MemoryCapsule[]) => void;
+  onSyncLessonMemory?: (sourceTextId: string, selectedCandidates: MemoryItemCandidate[]) => void;
+  promptMemoryAdd: (
+    candidates: MemoryItemCandidate[],
+    options?: MemoryAddPromptOptions,
+  ) => Promise<MemoryItemCandidate[] | null>;
   prefetchSpeech: (
     texts: string[],
     options?: { onProgress?: (progress: AudioPrefetchProgress) => void },
   ) => Promise<number>;
   speechSpeed: SpeechSpeed;
   onSpeechSpeedChange: (speed: SpeechSpeed) => void;
+  showAllTranslations: boolean;
 }
 
 function speechItems(content: string): string[] {
@@ -66,6 +87,7 @@ export function PracticeView({
   studyLanguage,
   vocabulary,
   onSave,
+  onSavePersonal,
   onSpeak,
   onStop,
   speaking,
@@ -78,12 +100,19 @@ export function PracticeView({
   onDetachLesson,
   onCloseLesson,
   onPracticeSaved,
+  isSandbox = false,
+  personalTexts = [],
+  onLoadPersonal,
+  onDeletePersonal,
+  onConfirmDeletePersonal,
   onNotice,
   onUpdateVocabTranslation,
   onSyncLessonMemory,
+  promptMemoryAdd,
   prefetchSpeech,
   speechSpeed,
   onSpeechSpeedChange,
+  showAllTranslations,
 }: PracticeViewProps) {
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
@@ -99,6 +128,7 @@ export function PracticeView({
   const [saving, setSaving] = useState(false);
   const [editorCollapsed, setEditorCollapsed] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  const [courseTense, setCourseTense] = useState<CourseTense>('present');
   const readAllAbortRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentenceListRef = useRef<SentenceListHandle>(null);
@@ -117,7 +147,6 @@ export function PracticeView({
     syncFromCache,
   } = useTranslation(studyLanguage);
 
-  const pendingMemoryRef = useRef<{ sentences: string[]; capsules: MemoryCapsule[] } | null>(null);
   const [audioPrefetch, setAudioPrefetch] = useState<AudioPrefetchProgress | null>(null);
 
   const prefetchLessonAudio = useCallback(
@@ -134,31 +163,65 @@ export function PracticeView({
     [prefetchSpeech],
   );
 
+  const prevLoadKeyRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!loadedText) return;
-    setText(loadedText.content);
-    setTitle(loadedText.title);
-    setActiveLoadedId(loadedText.id);
-    setSelectedIndex(null);
-    setSelectedWord(null);
-    setDrillOccurrence(null);
-    setDrillHighlighted(false);
-    setFocusMode(false);
-    setEditorCollapsed(true);
-    syncFromCache(loadedText.sentences);
-  }, [loadedText, loadKey, syncFromCache]);
+
+    const isNewLoad = prevLoadKeyRef.current !== loadKey;
+    prevLoadKeyRef.current = loadKey;
+
+    if (isNewLoad) {
+      setTitle(loadedText.title);
+      setActiveLoadedId(loadedText.id);
+      setSelectedIndex(null);
+      setSelectedWord(null);
+      setDrillOccurrence(null);
+      setDrillHighlighted(false);
+      setFocusMode(false);
+      setEditorCollapsed(true);
+      setCourseTense('present');
+    }
+
+    const tense = isNewLoad ? 'present' : courseTense;
+    const courseSentences = loadedText.courseSentences;
+    if (courseSentences?.length && isCourseLessonId(loadedText.id)) {
+      const lesson = buildUnitLessonContent(courseSentences, tense);
+      setText(lesson.content);
+      syncFromCache(lesson.cacheKeys);
+      return;
+    }
+
+    if (isNewLoad) {
+      setText(loadedText.content);
+      syncFromCache(loadedText.sentences);
+    }
+  }, [loadedText, loadKey, courseTense, syncFromCache]);
 
   const sentences = useMemo(() => splitIntoSentences(text), [text]);
+  const isCourseLesson = isCourseLessonId(activeLoadedId);
+  const saveWithoutVocab = isSandbox || loadedText?.personalPractice === true;
   const fullyTranslated = isTextFullyTranslated(text);
   const hasSentences = sentences.length > 0;
   const hasText = text.trim().length > 0;
 
-  const applyMemoryFromResult = (capsules: MemoryCapsule[], lessonSentences: string[]) => {
-    if (activeLoadedId) {
-      onSyncLessonMemory?.(activeLoadedId, lessonSentences, capsules);
-      return;
-    }
-    pendingMemoryRef.current = { sentences: lessonSentences, capsules };
+  const applyMemoryFromResult = async (capsules: MemoryCapsule[], lessonSentences: string[]) => {
+    if (isSandbox || isCourseLesson || saveWithoutVocab || !activeLoadedId) return;
+
+    const candidates = filterNewMemoryCandidates(
+      previewSyncMemoryItems(vocabulary, lessonSentences, capsules),
+    );
+    if (candidates.length === 0) return;
+
+    const selected = await promptMemoryAdd(candidates, {
+      title: 'Añadir a Memoria',
+      subtitle: 'Oraciones y cápsulas de esta lección',
+      confirmLabel: 'Añadir',
+      cancelLabel: 'Omitir',
+    });
+    if (selected === null || selected.length === 0) return;
+
+    onSyncLessonMemory?.(activeLoadedId, selected);
   };
 
   const handleTranslateAll = async () => {
@@ -167,7 +230,7 @@ export function PracticeView({
     const audioCount = await prefetchLessonAudio(items);
 
     if (result.ok) {
-      applyMemoryFromResult(result.memoryCapsules, sentences);
+      await applyMemoryFromResult(result.memoryCapsules, sentences);
       const parts: string[] = [`${result.count} ítems`];
       if (result.memoryCapsules.length > 0) parts.push(`${result.memoryCapsules.length} cápsulas`);
       parts.push(`${sentences.length} oraciones`);
@@ -183,21 +246,53 @@ export function PracticeView({
   const handleSave = async () => {
     if (!text.trim() || saving) return;
 
+    if (isCourseLesson) {
+      onNotice?.('Unidad del curso: usa Memoria para repasar las palabras.');
+      return;
+    }
+
+    if (saveWithoutVocab) {
+      if (!onSavePersonal) return;
+      setSaving(true);
+      try {
+        const items = speechItems(text);
+        await translateAllText(text);
+        await prefetchLessonAudio(items);
+        onSavePersonal(text, title.trim() || undefined, activeLoadedId ?? undefined);
+        if (!activeLoadedId) {
+          setTitle('');
+        }
+        onNotice?.('Conversación guardada');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     setSaving(true);
     try {
       const items = speechItems(text);
       const translationResult = await translateAllText(text);
-      const pending = pendingMemoryRef.current;
-      pendingMemoryRef.current = null;
-      const capsules =
-        translationResult.memoryCapsules.length > 0
-          ? translationResult.memoryCapsules
-          : (pending?.capsules ?? []);
+      const capsules = translationResult.memoryCapsules;
+
+      const candidates = filterNewMemoryCandidates(
+        previewLessonMemoryItems(vocabulary, text, sentences, capsules),
+      );
+
+      let selectedCandidates: MemoryItemCandidate[] = [];
+      if (candidates.length > 0) {
+        const selected = await promptMemoryAdd(candidates, {
+          title: 'Añadir a Memoria',
+          subtitle: title.trim() || 'Nueva lección',
+          confirmLabel: 'Guardar y añadir',
+          cancelLabel: 'Cancelar',
+        });
+        if (selected === null) return;
+        selectedCandidates = selected;
+      }
+
       const audioCount = await prefetchLessonAudio(items);
-      onSave(text, title.trim() || undefined, {
-        sentences,
-        capsules,
-      });
+      onSave(text, title.trim() || undefined, { selectedCandidates });
       setTitle('');
       const audioNote =
         audioCount > 0 ? `${audioCount} audios en caché` : 'voz del dispositivo';
@@ -211,6 +306,7 @@ export function PracticeView({
     setText('');
     setTitle('');
     setActiveLoadedId(null);
+    setCourseTense('present');
     setSelectedIndex(null);
     setSelectedWord(null);
     setDrillOccurrence(null);
@@ -365,9 +461,28 @@ export function PracticeView({
     setFocusMode(false);
   }, []);
 
+  const handleCourseTenseChange = useCallback(
+    (tense: CourseTense) => {
+      if (tense === courseTense) return;
+      onStop();
+      setSpeakingSentenceIndex(null);
+      clearDrill();
+      setSelectedWord(null);
+      setCourseTense(tense);
+    },
+    [clearDrill, courseTense, onStop],
+  );
+
   const drillHighlight = drillHighlighted && drillOccurrence
     ? { sentenceIndex: drillOccurrence.sentenceIndex, tokenIndex: drillOccurrence.tokenIndex }
     : null;
+
+  useEffect(() => {
+    if (!showAllTranslations || !hasSentences) return;
+    for (const sentence of sentences) {
+      void fetchTranslation(sentence);
+    }
+  }, [showAllTranslations, sentences, hasSentences, fetchTranslation]);
 
   const actionBarProps = {
     editorCollapsed,
@@ -379,14 +494,14 @@ export function PracticeView({
     onStopReadAll: handleStopReadAll,
     speaking,
     onTranslate: handleTranslateAll,
-    canTranslate: hasText,
+    canTranslate: hasText && !isCourseLesson,
     translating: isTranslatingAll,
     translated: fullyTranslated,
     saving,
-    isLoadedLesson: Boolean(activeLoadedId),
+    isLoadedLesson: Boolean(activeLoadedId) && !isSandbox,
     onCloseLesson: handleCloseLesson,
     onSave: handleSave,
-    canSave: hasText,
+    canSave: hasText && !isCourseLesson,
   };
 
   const prefetchingAudio = audioPrefetch !== null && audioPrefetch.remaining > 0;
@@ -455,6 +570,34 @@ export function PracticeView({
 
   return (
     <div className={`practice-view${focusMode ? ' practice-view--focus' : ''}`}>
+      {isSandbox && (
+        <div className="practice-sandbox-banner" role="status">
+          <span>⚡</span>
+          <span>
+            <strong>Práctica libre</strong> — puedes guardar conversaciones personales sin añadir
+            palabras al vocabulario. Abre unidades desde <strong>Curso</strong>.
+          </span>
+        </div>
+      )}
+      {isCourseLesson && !isSandbox && (
+        <div className="practice-course-header">
+          <div className="practice-sandbox-banner practice-sandbox-banner--course" role="status">
+            <span>🎓</span>
+            <span>
+              <strong>{title || 'Unidad del curso'}</strong> — traducciones incluidas. Las palabras van a Memoria al estudiarlas.
+            </span>
+          </div>
+          <CourseTenseSelector value={courseTense} onChange={handleCourseTenseChange} />
+        </div>
+      )}
+      {loadedText?.personalPractice && !isCourseLesson && (
+        <div className="practice-sandbox-banner practice-sandbox-banner--personal" role="status">
+          <span>💬</span>
+          <span>
+            <strong>{title || 'Conversación personal'}</strong> — guardada sin añadir vocabulario.
+          </span>
+        </div>
+      )}
       {!focusMode && (
         <div className="practice-view__setup">
           <TextInput
@@ -481,11 +624,25 @@ export function PracticeView({
         </div>
       )}
 
+      {!focusMode && !isCourseLesson && onLoadPersonal && onDeletePersonal && onConfirmDeletePersonal && (
+        <PersonalPracticeList
+          texts={personalTexts}
+          activeId={activeLoadedId}
+          onLoad={onLoadPersonal}
+          onDelete={onDeletePersonal}
+          onNew={handleCloseLesson}
+          onConfirmDelete={onConfirmDeletePersonal}
+        />
+      )}
+
       {focusMode && (
         <div className="practice-focus-bar">
           <button type="button" className="btn btn--secondary btn--sm" onClick={exitFocusMode}>
             ← Lista
           </button>
+          {isCourseLesson && (
+            <CourseTenseSelector value={courseTense} onChange={handleCourseTenseChange} />
+          )}
           <span className="practice-focus-bar__meta">
             {selectedIndex !== null ? `${selectedIndex + 1}/${sentences.length}` : ''}
           </span>
@@ -525,7 +682,7 @@ export function PracticeView({
 
           <SentenceList
             ref={sentenceListRef}
-            key={text}
+            key={`${courseTense}-${text}`}
             sentences={sentences}
             selectedIndex={selectedIndex}
             speakingIndex={speakingSentenceIndex}
@@ -536,6 +693,7 @@ export function PracticeView({
             isTranslationLoading={isLoading}
             hasTranslationError={hasError}
             fetchTranslation={fetchTranslation}
+            showAllTranslations={showAllTranslations}
             onSelectSentence={handleSelectSentence}
             onSelectWord={handleSelectWord}
             onSpeakSentence={speakAtIndex}

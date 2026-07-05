@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { VocabCategoryFilter, VocabEntry } from '../types';
 import type { FlashcardCategory } from '../types';
 import { getFlashcardCategory, summarizeFlashcardDeck } from '../utils/spacedRepetition';
@@ -7,12 +7,13 @@ import { getVocabKind, vocabKindChipClass, vocabKindLabel } from '../utils/vocab
 import type { SavedText } from '../types';
 import { FLASHCARD_CATEGORIES } from '../constants/flashcardCategories';
 import { WordCategorySummary } from './WordCategorySummary';
-import { VocabKindPeek } from './VocabKindPeek';
+import { isLexiconPlaceholderId, getLexiconLevelForWord, loadCourseData, LEXICON_LEVELS, type LexiconLevel } from '../utils/course';
 import type { RegenerateProgress } from '../utils/regenerateVocabulary';
 import { ProgressBar } from './ProgressBar';
 
 interface VocabularyListProps {
   entries: VocabEntry[];
+  lexiconTotal: number;
   savedTexts: SavedText[];
   categoryFilter: VocabCategoryFilter | null;
   onClearCategoryFilter: () => void;
@@ -23,9 +24,14 @@ interface VocabularyListProps {
   onRegenerateAll: () => void;
   regenerating: boolean;
   regenerateProgress: RegenerateProgress | null;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, normalized?: string) => void;
   onConfirmDelete: (word: string) => Promise<boolean>;
   speaking: boolean;
+  showTranslations: boolean;
+}
+
+function entryLevel(entry: VocabEntry): string | undefined {
+  return entry.lexiconLevel ?? getLexiconLevelForWord(entry.word);
 }
 
 type SortMode = 'recent' | 'alpha' | 'category';
@@ -45,6 +51,7 @@ function isVocabPhrase(entry: VocabEntry): boolean {
 }
 
 function formatDate(ts: number): string {
+  if (!ts) return '—';
   return new Intl.DateTimeFormat('es', {
     day: 'numeric',
     month: 'short',
@@ -53,6 +60,7 @@ function formatDate(ts: number): string {
 
 export function VocabularyList({
   entries,
+  lexiconTotal,
   savedTexts,
   categoryFilter,
   onClearCategoryFilter,
@@ -66,13 +74,18 @@ export function VocabularyList({
   onDelete,
   onConfirmDelete,
   speaking,
+  showTranslations,
 }: VocabularyListProps) {
   const [query, setQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTranslation, setDraftTranslation] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [showTranslations, setShowTranslations] = useState(false);
+  const [levelFilter, setLevelFilter] = useState<LexiconLevel | ''>('');
+
+  useEffect(() => {
+    void loadCourseData();
+  }, []);
 
   const vocabularyItems = useMemo(
     () =>
@@ -113,6 +126,10 @@ export function VocabularyList({
       );
     }
 
+    if (levelFilter) {
+      result = result.filter((entry) => entryLevel(entry) === levelFilter);
+    }
+
     const needle = query.trim().toLowerCase();
     if (needle) {
       result = result.filter(
@@ -131,11 +148,18 @@ export function VocabularyList({
       }
       return b.addedAt - a.addedAt;
     });
-  }, [categoryFilter, vocabularyItems, query, savedTexts, sortMode]);
+  }, [categoryFilter, levelFilter, vocabularyItems, query, savedTexts, sortMode]);
 
   const filterLabel = useMemo(() => {
-    if (!categoryFilter?.category) return null;
-    return FLASHCARD_CATEGORIES.find((item) => item.id === categoryFilter.category)?.label ?? null;
+    const parts: string[] = [];
+    if (levelFilter) parts.push(levelFilter);
+    if (categoryFilter?.category) {
+      parts.push(
+        FLASHCARD_CATEGORIES.find((item) => item.id === categoryFilter.category)?.label ??
+          categoryFilter.category,
+      );
+    }
+    return parts.length > 0 ? parts.join(' · ') : null;
   }, [categoryFilter]);
 
   const startEditing = (entry: VocabEntry) => {
@@ -163,7 +187,10 @@ export function VocabularyList({
     <div className="vocab-list-view">
       <div className="vocab-summary vocab-list-view__chrome">
         <div className="vocab-summary__row">
-          <span className="vocab-summary__count">{vocabularyItems.length} términos</span>
+          <span className="vocab-summary__count">
+            {filteredEntries.length}
+            {levelFilter || categoryFilter?.category ? ` de ${vocabularyItems.length}` : ''} / {lexiconTotal} términos
+          </span>
           {withoutTranslation > 0 && (
             <span className="vocab-summary__warn">{withoutTranslation} sin traducción</span>
           )}
@@ -175,13 +202,19 @@ export function VocabularyList({
             onCategoryFilter(categoryFilter?.category === category ? null : category)
           }
         />
-        <VocabKindPeek vocabulary={entries} />
       </div>
 
-      {filterLabel && (
+      {(filterLabel || levelFilter) && (
         <div className="vocab-filter-banner vocab-list-view__chrome">
-          <span>Filtro: {filterLabel}</span>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={onClearCategoryFilter}>
+          <span>Filtro: {filterLabel || levelFilter}</span>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => {
+              onClearCategoryFilter();
+              setLevelFilter('');
+            }}
+          >
             Quitar
           </button>
         </div>
@@ -199,15 +232,19 @@ export function VocabularyList({
           />
         </label>
         <div className="vocab-toolbar__controls">
-          <button
-            type="button"
-            className={`vocab-toolbar__toggle${showTranslations ? ' vocab-toolbar__toggle--active' : ''}`}
-            onClick={() => setShowTranslations((visible) => !visible)}
-            aria-pressed={showTranslations}
-            aria-label={showTranslations ? 'Ocultar traducciones' : 'Ver traducciones'}
+          <select
+            className="select vocab-toolbar__sort"
+            value={levelFilter}
+            onChange={(event) => setLevelFilter((event.target.value || '') as LexiconLevel | '')}
+            aria-label="Filtrar por nivel CEFR"
           >
-            {showTranslations ? 'Ocultar traducciones' : 'Ver traducciones'}
-          </button>
+            <option value="">Todos los niveles</option>
+            {LEXICON_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {level}
+              </option>
+            ))}
+          </select>
           <select
             className="select vocab-toolbar__sort"
             value={sortMode}
@@ -266,13 +303,21 @@ export function VocabularyList({
               const isBusy = busyId === entry.id;
               const kind = getVocabKind(entry);
               const isPhrase = isVocabPhrase(entry);
+              const isLexiconOnly = isLexiconPlaceholderId(entry.id);
               const canSave =
                 draftTranslation.trim().length > 0 &&
                 draftTranslation.trim() !== (entry.translation ?? '').trim();
 
               return (
                 <li key={entry.id} className={`vocab-card${isPhrase ? ' vocab-card--phrase' : ''}`}>
-                  <span className="vocab-card__date">{formatDate(entry.addedAt)}</span>
+                  <span className="vocab-card__date">
+                    {entryLevel(entry) && (
+                      <span className={`vocab-card__level vocab-card__level--${entryLevel(entry)!.toLowerCase()}`}>
+                        {entryLevel(entry)}
+                      </span>
+                    )}
+                    {formatDate(entry.addedAt)}
+                  </span>
                   {isEditing ? (
                     <div className={`vocab-card__main${isPhrase ? ' vocab-card__main--phrase' : ''}`}>
                       <span className={vocabKindChipClass(kind)} aria-hidden>
@@ -387,7 +432,7 @@ export function VocabularyList({
                             void onRegenerateWord(entry.word).finally(() => setBusyId(null));
                           }}
                           aria-label={`Regenerar ${entry.word}`}
-                          title="Regenerar traducción"
+                          title="Volver a buscar traducción y audio (respeta traducciones manuales)"
                         >
                           {isBusy ? '…' : '↻'}
                         </button>
@@ -396,10 +441,14 @@ export function VocabularyList({
                           className="btn btn--ghost vocab-card__action vocab-card__action--delete"
                           onClick={async () => {
                             const confirmed = await onConfirmDelete(entry.word);
-                            if (confirmed) onDelete(entry.id);
+                            if (confirmed) onDelete(entry.id, entry.normalized);
                           }}
                           aria-label={`Borrar ${entry.word}`}
-                          title="Eliminar"
+                          title={
+                            isLexiconOnly
+                              ? 'Quitar de tu vocabulario SRS (permanece en el lexicón)'
+                              : 'Eliminar de vocabulario y Memoria'
+                          }
                         >
                           ✕
                         </button>

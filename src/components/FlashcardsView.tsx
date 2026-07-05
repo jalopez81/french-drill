@@ -1,16 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { FlashcardRating, VocabEntry } from '../types';
-import { formatNextReview } from '../utils/spacedRepetition';
+import type { FlashcardRating, SavedText, VocabEntry } from '../types';
+import type { UpcomingReviewGroup } from '../utils/spacedRepetition';
 import { getVocabKind, vocabKindLabel, vocabKindPillClass } from '../utils/vocabKind';
 import { FlashcardSummary } from './FlashcardSummary';
-import { VocabKindPeek } from './VocabKindPeek';
+import { UpcomingReviews } from './UpcomingReviews';
 import type { FlashcardCategory } from '../types';
 import { ProgressBar } from './ProgressBar';
+import { findFlashcardContext } from '../utils/flashcardContext';
+import { FlashcardContextLine } from './FlashcardContextLine';
+import { normalizePhrase } from '../utils/wordExtractor';
 
 interface FlashcardsViewProps {
   vocabulary: VocabEntry[];
+  savedTexts: SavedText[];
   dueCount: number;
   totalCount: number;
+  upcomingReviews: UpcomingReviewGroup[];
   sessionDone: number;
   remainingInSession: number;
   currentCard: VocabEntry | null;
@@ -18,11 +23,13 @@ interface FlashcardsViewProps {
   sessionComplete: boolean;
   hasDeck: boolean;
   speaking: boolean;
+  courseUnitFilter: string | null;
+  courseUnitOptions: { id: string; label: string }[];
+  onCourseUnitFilterChange: (unitId: string | null) => void;
   onReveal: () => void;
   onRate: (rating: FlashcardRating) => void;
   onSpeak: (word: string) => void;
-  onSaveTranslation: (word: string, translation: string) => void;
-  onRefetchTranslation: (word: string) => Promise<string | null>;
+  onStop: () => void;
   onRestart: () => void;
   onStudyAll: () => void;
   onCategoryClick: (category: FlashcardCategory) => void;
@@ -40,8 +47,10 @@ const SWIPE_EXIT_MS = 260;
 
 export function FlashcardsView({
   vocabulary,
+  savedTexts,
   dueCount,
   totalCount,
+  upcomingReviews,
   sessionDone,
   remainingInSession,
   currentCard,
@@ -49,29 +58,28 @@ export function FlashcardsView({
   sessionComplete,
   hasDeck,
   speaking,
+  courseUnitFilter,
+  courseUnitOptions,
+  onCourseUnitFilterChange,
   onReveal,
   onRate,
   onSpeak,
-  onSaveTranslation,
-  onRefetchTranslation,
+  onStop,
   onRestart,
   onStudyAll,
   onCategoryClick,
 }: FlashcardsViewProps) {
-  const withoutTranslation = vocabulary.length - totalCount;
   const onSpeakRef = useRef(onSpeak);
+  const onStopRef = useRef(onStop);
   const onRateRef = useRef(onRate);
-  const [draftTranslation, setDraftTranslation] = useState('');
-  const [refetching, setRefetching] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [swipeHint, setSwipeHint] = useState<'left' | 'right' | null>(null);
   const [exitDirection, setExitDirection] = useState<'left' | 'right' | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const lastAutoSpeakRef = useRef<{ id: string; at: number } | null>(null);
-
   onSpeakRef.current = onSpeak;
+  onStopRef.current = onStop;
   onRateRef.current = onRate;
 
   const liveCard = useMemo(() => {
@@ -79,18 +87,30 @@ export function FlashcardsView({
     return vocabulary.find((entry) => entry.id === currentCard.id) ?? currentCard;
   }, [currentCard, vocabulary]);
 
-  useEffect(() => {
-    if (!currentCard) return;
-    const now = Date.now();
-    const last = lastAutoSpeakRef.current;
-    if (last?.id === currentCard.id && now - last.at < 800) return;
-    lastAutoSpeakRef.current = { id: currentCard.id, at: now };
-    void onSpeakRef.current(currentCard.word);
-  }, [currentCard?.id]);
+  const cardContext = useMemo(() => {
+    if (!liveCard) return null;
+    return findFlashcardContext(liveCard, savedTexts);
+  }, [liveCard, savedTexts]);
+
+  const showContextLine =
+    revealed &&
+    cardContext &&
+    normalizePhrase(cardContext.sentence) !== normalizePhrase(liveCard?.word ?? '');
+
+  const contextHighlightPhrase = liveCard ? getVocabKind(liveCard) === 'capsule' : false;
 
   useEffect(() => {
-    setDraftTranslation(liveCard?.translation ?? '');
-  }, [liveCard?.id, liveCard?.translation]);
+    if (!currentCard) return;
+    const word = currentCard.word;
+    const timer = window.setTimeout(() => {
+      void onSpeakRef.current(word);
+    }, 80);
+
+    return () => {
+      window.clearTimeout(timer);
+      onStopRef.current();
+    };
+  }, [currentCard?.id]);
 
   useEffect(() => {
     setDragOffset(0);
@@ -135,11 +155,6 @@ export function FlashcardsView({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentCard, onRate, onReveal, revealed, sessionComplete]);
-
-  const canSave =
-    Boolean(liveCard) &&
-    draftTranslation.trim().length > 0 &&
-    draftTranslation.trim() !== (liveCard?.translation ?? '').trim();
 
   const swipeIntensity = Math.min(Math.abs(dragOffset) / SWIPE_THRESHOLD, 1);
   const sessionTotal = sessionDone + remainingInSession;
@@ -206,12 +221,37 @@ export function FlashcardsView({
     return (
       <div className="flashcards-view">
         <h2 className="section-title">Memoria</h2>
+        {courseUnitOptions.length > 0 && (
+          <label className="field flashcards-unit-filter">
+            <span className="field__label">Unidad del curso</span>
+            <select
+              className="select"
+              value={courseUnitFilter ?? ''}
+              onChange={(e) => onCourseUnitFilterChange(e.target.value || null)}
+            >
+              <option value="">Todo el vocabulario</option>
+              {courseUnitOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="empty-state">
-          <p>Guarda lecciones y tradúcelas para practicar en Memoria.</p>
+          <p>
+            {courseUnitFilter
+              ? 'No hay palabras de esta unidad en tu memoria todavía. Abre la unidad en Curso para empezar.'
+              : 'Practica unidades del curso para añadir palabras a Memoria.'}
+          </p>
         </div>
       </div>
     );
   }
+
+  const activeUnitLabel = courseUnitFilter
+    ? courseUnitOptions.find((option) => option.id === courseUnitFilter)?.label
+    : null;
 
   const header = (
     <>
@@ -221,8 +261,37 @@ export function FlashcardsView({
           {dueCount} pend. · {totalCount} en memoria
         </span>
       </div>
+      {courseUnitOptions.length > 0 && (
+        <label className="field flashcards-unit-filter">
+          <span className="field__label">Unidad del curso</span>
+          <select
+            className="select"
+            value={courseUnitFilter ?? ''}
+            onChange={(e) => onCourseUnitFilterChange(e.target.value || null)}
+          >
+            <option value="">Todo el vocabulario</option>
+            {courseUnitOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {activeUnitLabel && (
+        <div className="vocab-filter-banner flashcards-unit-filter-banner">
+          <span>Unidad: {activeUnitLabel}</span>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => onCourseUnitFilterChange(null)}
+          >
+            Quitar
+          </button>
+        </div>
+      )}
       <FlashcardSummary vocabulary={vocabulary} onCategoryClick={onCategoryClick} />
-      <VocabKindPeek vocabulary={vocabulary} className="vocab-kind-peek--flashcards" />
+      <UpcomingReviews tiers={upcomingReviews} />
     </>
   );
 
@@ -264,169 +333,152 @@ export function FlashcardsView({
   }
 
   return (
-    <div className="flashcards-view">
-      {header}
-
-      <p className="flashcards-header__meta flashcards-header__meta--session">
-        Sesión · {remainingInSession} restantes
-      </p>
-
-      {sessionTotal > 0 && (
-        <ProgressBar
-          value={sessionDone}
-          max={sessionTotal}
-          label={`Sesión: ${sessionDone}/${sessionTotal}`}
-          showPercent
-          size="sm"
-          className="flashcards-session-progress"
-        />
-      )}
-
-      {withoutTranslation > 0 && (
-        <p className="hint">
-          {withoutTranslation} palabra{withoutTranslation === 1 ? '' : 's'} sin traducción no{' '}
-          {withoutTranslation === 1 ? 'está' : 'están'} en memoria.
-        </p>
-      )}
-
-      <div className="flashcard-swipe-zone">
-        <div
-          className={`flashcard-swipe-overlay flashcard-swipe-overlay--left${swipeHint === 'left' ? ' flashcard-swipe-overlay--active' : ''}`}
-          style={{ opacity: swipeHint === 'left' ? swipeIntensity : undefined }}
-          aria-hidden
-        >
-          <span className="flashcard-swipe-overlay__label">Otra vez</span>
+    <div className="flashcards-view flashcards-view--active">
+      <div className="flashcards-dashboard">
+        <div className="flashcards-header flashcards-header--compact">
+          <h2 className="section-title flashcards-header__title">Memoria</h2>
+          <span className="flashcards-header__meta">
+            {sessionTotal > 0
+              ? `Sesión ${sessionDone}/${sessionTotal} · ${remainingInSession} rest.`
+              : `${dueCount} pend.`}
+            {' · '}
+            {totalCount} en memoria
+          </span>
         </div>
-        <div
-          className={`flashcard-swipe-overlay flashcard-swipe-overlay--right${swipeHint === 'right' ? ' flashcard-swipe-overlay--active' : ''}`}
-          style={{ opacity: swipeHint === 'right' ? swipeIntensity : undefined }}
-          aria-hidden
-        >
-          <span className="flashcard-swipe-overlay__label">Bien</span>
-        </div>
-
-        <article
-          className={`flashcard ${revealed ? 'flashcard--revealed' : ''}${isDragging ? ' flashcard--dragging' : ''}${exitDirection ? ` flashcard--exit-${exitDirection}` : ''}`}
-          style={{ transform: cardTransform }}
-          onClick={() => {
-            if (isDragging || exitDirection) return;
-            if (!revealed) onReveal();
-          }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (!revealed && (e.key === 'Enter' || e.key === ' ')) {
-              e.preventDefault();
-              onReveal();
-            }
-          }}
-        >
-          <div className="flashcard__top">
-            <span className={vocabKindPillClass(getVocabKind(liveCard))}>
-              {vocabKindLabel(getVocabKind(liveCard))}
-            </span>
+        {activeUnitLabel && (
+          <div className="vocab-filter-banner flashcards-unit-filter-banner">
+            <span>Unidad: {activeUnitLabel}</span>
             <button
               type="button"
-              className="btn btn--primary btn--icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSpeak(liveCard.word);
-              }}
-              disabled={speaking}
-              aria-label={`Pronunciar ${liveCard.word}`}
+              className="btn btn--ghost btn--sm"
+              onClick={() => onCourseUnitFilterChange(null)}
             >
-              ▶
+              Quitar
             </button>
           </div>
-
-          <p className="flashcard__word">{liveCard.word}</p>
-
-          {revealed ? (
-            <div
-              className="flashcard__answer-edit"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-            >
-              <label className="field field--compact">
-                <span className="field__label">Traducción</span>
-                <input
-                  type="text"
-                  className="title-input"
-                  value={draftTranslation}
-                  onChange={(e) => setDraftTranslation(e.target.value)}
-                  disabled={refetching}
-                />
-              </label>
-              <div className="btn-row flashcard__translation-actions">
-                <button
-                  type="button"
-                  className="btn btn--secondary btn--sm"
-                  disabled={!canSave}
-                  onClick={() => onSaveTranslation(liveCard.word, draftTranslation)}
-                >
-                  Guardar
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  disabled={refetching}
-                  onClick={() => {
-                    setRefetching(true);
-                    void onRefetchTranslation(liveCard.word)
-                      .then((translation) => {
-                        if (translation) setDraftTranslation(translation);
-                      })
-                      .finally(() => setRefetching(false));
-                  }}
-                >
-                  {refetching ? 'Traduciendo…' : 'Traducir de nuevo'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p className="flashcard__hint">Toca para ver la respuesta</p>
-          )}
-
-          {liveCard.srs && (
-            <p className="flashcard__srs">
-              Próxima revisión: {formatNextReview(liveCard.srs.nextReview)}
-            </p>
-          )}
-        </article>
+        )}
+        <FlashcardSummary vocabulary={vocabulary} onCategoryClick={onCategoryClick} />
+        <UpcomingReviews tiers={upcomingReviews} />
+        {sessionTotal > 0 && (
+          <ProgressBar
+            value={sessionDone}
+            max={sessionTotal}
+            label={`Sesión: ${sessionDone}/${sessionTotal}`}
+            showPercent
+            size="sm"
+            className="flashcards-session-progress"
+          />
+        )}
       </div>
 
-      {revealed && (
-        <>
-          <div className="flashcard-swipe-guide" aria-hidden>
-            <span className="flashcard-swipe-guide__side flashcard-swipe-guide__side--left">
-              ← Desliza · Otra vez
-            </span>
-            <span className="flashcard-swipe-guide__side flashcard-swipe-guide__side--right">
-              Bien · Desliza →
-            </span>
-          </div>
+      <div className="flashcards-study">
+        <div className="flashcards-study-stage">
+          <div className="flashcard-swipe-zone">
+            <div
+              className={`flashcard-swipe-overlay flashcard-swipe-overlay--left${swipeHint === 'left' ? ' flashcard-swipe-overlay--active' : ''}`}
+              style={{ opacity: swipeHint === 'left' ? swipeIntensity : undefined }}
+              aria-hidden
+            >
+              <span className="flashcard-swipe-overlay__label">Otra vez</span>
+            </div>
+            <div
+              className={`flashcard-swipe-overlay flashcard-swipe-overlay--right${swipeHint === 'right' ? ' flashcard-swipe-overlay--active' : ''}`}
+              style={{ opacity: swipeHint === 'right' ? swipeIntensity : undefined }}
+              aria-hidden
+            >
+              <span className="flashcard-swipe-overlay__label">Bien</span>
+            </div>
 
-          <div className="flashcard-ratings">
-            {ratings.map((rating) => (
-              <button
-                key={rating.id}
-                type="button"
-                className={`flashcard-rate ${rating.className}`}
-                onClick={() => onRate(rating.id)}
-              >
-                {rating.key} · {rating.label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+            <article
+              className={`flashcard ${revealed ? 'flashcard--revealed' : ''}${isDragging ? ' flashcard--dragging' : ''}${exitDirection ? ` flashcard--exit-${exitDirection}` : ''}`}
+              style={{ transform: cardTransform }}
+              onClick={() => {
+                if (isDragging || exitDirection) return;
+                if (!revealed) onReveal();
+              }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (!revealed && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  onReveal();
+                }
+              }}
+            >
+              <div className="flashcard__accent" aria-hidden />
 
-      {!revealed && (
-        <p className="hint flashcards-hint">Espacio para revelar · 1–4 para calificar</p>
-      )}
+              <div className="flashcard__body">
+                <p className="flashcard__word">{liveCard.word}</p>
+                {revealed ? (
+                  <>
+                    {showContextLine && cardContext && (
+                      <FlashcardContextLine
+                        sentence={cardContext.sentence}
+                        targetNormalized={cardContext.targetNormalized}
+                        highlightPhrase={contextHighlightPhrase}
+                      />
+                    )}
+                    <p className="flashcard__translation">
+                      {liveCard.translation?.trim() || 'Sin traducción'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="flashcard__hint">Toca para ver la respuesta</p>
+                )}
+              </div>
+
+              <div className="flashcard__footer">
+                <span className={vocabKindPillClass(getVocabKind(liveCard))}>
+                  {vocabKindLabel(getVocabKind(liveCard))}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn--primary btn--icon flashcard__speak"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSpeak(liveCard.word);
+                  }}
+                  disabled={speaking}
+                  aria-label={`Pronunciar ${liveCard.word}`}
+                >
+                  ▶
+                </button>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div className="flashcards-study-controls">
+        {revealed && (
+          <>
+            <p className="flashcard-swipe-hint" aria-hidden>
+              <span className="flashcard-swipe-hint__left">← Desliza · Otra vez</span>
+              <span className="flashcard-swipe-hint__right">Bien · Desliza →</span>
+            </p>
+
+            <div className="flashcard-ratings">
+              {ratings.map((rating) => (
+                <button
+                  key={rating.id}
+                  type="button"
+                  className={`flashcard-rate ${rating.className}`}
+                  onClick={() => onRate(rating.id)}
+                >
+                  {rating.key} · {rating.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {!revealed && (
+          <p className="hint flashcards-hint">Toca la tarjeta · Espacio para revelar</p>
+        )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -107,6 +107,7 @@ export function saveText(
   state: AppState,
   content: string,
   customTitle?: string,
+  options?: { skipVocabulary?: boolean; personalPractice?: boolean },
 ): { state: AppState; saved: SavedText } {
   const sentences = splitIntoSentences(content);
   const trimmedTitle = customTitle?.trim();
@@ -117,7 +118,18 @@ export function saveText(
     sentences,
     createdAt: Date.now(),
     lastPracticedAt: Date.now(),
+    personalPractice: options?.personalPractice ?? false,
   };
+
+  if (options?.skipVocabulary) {
+    return {
+      state: {
+        ...state,
+        savedTexts: [saved, ...state.savedTexts],
+      },
+      saved,
+    };
+  }
 
   const existingVocab = new Set(state.vocabulary.map((v) => v.normalized));
   const newWords = uniqueWords(content).filter(
@@ -198,6 +210,32 @@ export function updateSavedTextTitle(state: AppState, id: string, title: string)
   };
 }
 
+export function updateSavedTextContent(
+  state: AppState,
+  id: string,
+  content: string,
+  title?: string,
+): AppState {
+  const trimmed = content.trim();
+  if (!trimmed) return state;
+
+  const sentences = splitIntoSentences(trimmed);
+  return {
+    ...state,
+    savedTexts: state.savedTexts.map((t) =>
+      t.id === id
+        ? {
+            ...t,
+            content: trimmed,
+            sentences,
+            title: title?.trim() || t.title,
+            lastPracticedAt: Date.now(),
+          }
+        : t,
+    ),
+  };
+}
+
 export function updateVocabTranslation(
   state: AppState,
   word: string,
@@ -212,6 +250,39 @@ export function updateVocabTranslation(
     vocabulary: state.vocabulary.map((entry) =>
       entry.normalized === normalized ? { ...entry, translation: trimmed } : entry,
     ),
+  };
+}
+
+export function upsertVocabTranslation(
+  state: AppState,
+  word: string,
+  translation: string,
+  meta?: Pick<VocabEntry, 'lexiconLevel' | 'sourceTextId'>,
+): AppState {
+  const normalized = normalizeWord(word);
+  const trimmed = translation.trim();
+  if (!normalized || !trimmed) return state;
+
+  const existing = state.vocabulary.find((entry) => entry.normalized === normalized);
+  if (existing) {
+    return updateVocabTranslation(state, word, trimmed);
+  }
+
+  return {
+    ...state,
+    vocabulary: [
+      {
+        id: crypto.randomUUID(),
+        word,
+        normalized,
+        translation: trimmed,
+        addedAt: Date.now(),
+        kind: 'word',
+        lexiconLevel: meta?.lexiconLevel,
+        sourceTextId: meta?.sourceTextId,
+      },
+      ...state.vocabulary,
+    ],
   };
 }
 
